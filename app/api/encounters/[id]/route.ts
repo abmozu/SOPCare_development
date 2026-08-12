@@ -9,6 +9,15 @@ const editableFields = {
   diagnosis: "diagnosis",
 } as const;
 
+function cleanRichText(value: unknown, max = 12000) {
+  if (typeof value !== "string") return "";
+  return value.slice(0, max)
+    .replace(/<\/?(script|style|iframe|object|embed)[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*(["']).*?\1/gi, "")
+    .replace(/\sstyle\s*=\s*(["']).*?expression.*?\1/gi, "")
+    .trim();
+}
+
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const actor = await requireApiActor("clinical.notes.edit");
   if (actor instanceof Response) return actor;
@@ -19,7 +28,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const amendmentReason = cleanText(payload.amendmentReason, 500);
     const entries = Object.entries(editableFields)
       .filter(([field]) => Object.prototype.hasOwnProperty.call(payload, field))
-      .map(([field, column]) => ({ field, column, value: cleanText(payload[field], field === "diagnosis" ? 1000 : 4000) }));
+      .map(([field, column]) => ({ field, column, value: field === "plan" ? cleanRichText(payload[field]) : cleanText(payload[field], field === "diagnosis" ? 1000 : 4000) }));
     if (!entries.length) return Response.json({ error: "No editable visit fields were supplied." }, { status: 400 });
 
     const db = await ensureDatabase();
