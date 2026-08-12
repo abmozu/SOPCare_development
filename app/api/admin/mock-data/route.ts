@@ -1,5 +1,8 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 import { ACCESS_ROLES, MOCK_AUDIT_LOGS, MOCK_USERS, PERMISSIONS, PROFESSIONAL_ROLES, WORKSPACES, publicUser } from "../../../access-model";
-import { getPortalUser } from "../../../mock-auth";
+import { getPortalUser, storedPortalUsers } from "../../../mock-auth";
 import { ensureDatabase } from "../../../../db/runtime";
 
 export async function GET() {
@@ -8,7 +11,7 @@ export async function GET() {
     return Response.json({ error: "You do not have permission to access this page." }, { status: 403 });
   }
   const db = await ensureDatabase();
-  const [athletes, sports, teams] = await Promise.all([
+  const [athletes, sports, teams, storedUsers] = await Promise.all([
     db.prepare(`SELECT a.id, a.mrn, a.first_name AS firstName, a.last_name AS lastName,
       a.date_of_birth AS dateOfBirth, a.sex, a.sport_id AS sportId, a.discipline,
       a.dominant_side AS dominantSide, a.status, s.name AS sport,
@@ -19,9 +22,10 @@ export async function GET() {
       ORDER BY a.updated_at DESC, a.last_name ASC`).all(),
     db.prepare("SELECT id, name FROM sports ORDER BY name").all(),
     db.prepare("SELECT id, name FROM teams ORDER BY name").all(),
+    storedPortalUsers(),
   ]);
   return Response.json({
-    users: MOCK_USERS.map(publicUser),
+    users: [...storedUsers.map(publicUser), ...MOCK_USERS.map(publicUser)],
     workspaces: WORKSPACES,
     permissions: PERMISSIONS,
     professionalRoles: PROFESSIONAL_ROLES,
@@ -32,3 +36,4 @@ export async function GET() {
     teams: teams.results,
   });
 }
+
