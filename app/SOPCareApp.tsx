@@ -404,8 +404,12 @@ const safetyDetails = {
   prohibitedMedications: { title: "Prohibited medication", none: "No prohibited medication recorded", icon: "×" },
 } as const;
 
+function safetyDisplayItems(value: string) {
+  return value.split(/\n|,|\s+/).map((item) => item.trim()).filter(Boolean);
+}
+
 function ClinicalSafetyPanel({ athlete, onEdit }: { athlete: Athlete; onEdit: (category: "allergies" | "chronicConditions" | "prohibitedMedications") => void }) {
-  return <section className="clinical-safety-panel" aria-label="Clinical safety"><div className="clinical-safety-head"><div><span className="section-kicker">Clinical safety</span><h3>Important athlete information</h3></div><span>Review before care decisions</span></div><div className="clinical-safety-grid">{(Object.keys(safetyDetails) as Array<keyof typeof safetyDetails>).map((category) => { const detail = safetyDetails[category]; const value = athlete[category]; const none = !value || value === "None recorded"; return <article key={category} className={`safety-card ${none ? "is-clear" : "has-record"}`}><span className="safety-icon">{detail.icon}</span><div><small>{detail.title}</small><strong>{none ? detail.none : value}</strong><p>{none ? "Confirm this status or add a record." : "Recorded in the athlete clinical file."}</p></div><button className="button secondary small" onClick={() => onEdit(category)}>{none ? "Confirm / add" : "Edit"}</button></article>; })}</div></section>;
+  return <section className="clinical-safety-panel" aria-label="Clinical safety"><div className="clinical-safety-head"><div><span className="section-kicker">Clinical safety</span><h3>Important athlete information</h3></div><span>Review before care decisions</span></div><div className="clinical-safety-grid">{(Object.keys(safetyDetails) as Array<keyof typeof safetyDetails>).map((category) => { const detail = safetyDetails[category]; const value = athlete[category]; const none = !value || value === "None recorded"; const items = safetyDisplayItems(value); return <article key={category} className={`safety-card ${none ? "is-clear" : "has-record"}`}><span className="safety-icon">{detail.icon}</span><div><small>{detail.title}</small><strong className="safety-value">{none ? detail.none : items.map((item, index) => <span key={`${item}-${index}`}>{index > 0 && <i>•</i>}{item}</span>)}</strong><p>{none ? "Confirm this status or add a record." : "Recorded in the athlete clinical file."}</p></div><button className="button secondary small" onClick={() => onEdit(category)}>{none ? "Confirm / add" : "Edit"}</button></article>; })}</div></section>;
 }
 
 function SummaryItem({ label, children }: { label: string; children: React.ReactNode }) { return <div className="summary-item"><small>{label}</small>{children}</div>; }
