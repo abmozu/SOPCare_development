@@ -61,11 +61,11 @@ export function clearSessionCookie() {
 }
 
 export async function authenticate(username: string, password: string) {
-  const configuredPassword = process.env.SOPCARE_MOCK_PASSWORD;
-  if (!configuredPassword) throw new Error("SOPCARE_MOCK_PASSWORD is required for prototype authentication.");
   const normalized = username.trim().toLowerCase();
   const stored = (await storedPortalUsers()).find((candidate) => candidate.username.toLowerCase() === normalized);
   if (stored) return stored.status === "Active" && stored.password_hash === await hashPassword(password) ? publicUser(stored) : null;
+  const configuredPassword = process.env.SOPCARE_MOCK_PASSWORD;
+  if (!configuredPassword) throw new Error("SOPCARE_MOCK_PASSWORD is required for prototype authentication.");
   const user = MOCK_USERS.find((candidate) => candidate.username.toLowerCase() === normalized);
   if (!user || await hashPassword(configuredPassword) !== await hashPassword(password) || user.status !== "Active") return null;
   return publicUser(user);
