@@ -7,10 +7,24 @@ export async function GET() {
 
   try {
     const db = await ensureDatabase();
-    const actorProfile = await db.prepare(`SELECT u.full_name AS name, pp.specialty
+    const actorProfile = await db.prepare(`SELECT u.full_name AS name, pp.specialty,
+      pp.default_encounter_type AS defaultEncounterType, pp.clinic_city AS clinicCity,
+      pp.clinic_type AS clinicType, pp.clinic_location AS clinicLocation
       FROM users u LEFT JOIN practitioner_profiles pp ON pp.user_id = u.id
-      WHERE u.id = ? OR u.email = ? LIMIT 1`).bind(actor.id, actor.email).first<{ name: string; specialty: string | null }>();
-    const resolvedActor = actorProfile ? { ...actor, name: actorProfile.name, specialty: actorProfile.specialty ?? actor.specialty } : actor;
+      WHERE u.id = ? OR u.email = ? LIMIT 1`).bind(actor.id, actor.email).first<{ name: string; specialty: string | null; defaultEncounterType: string | null; clinicCity: string | null; clinicType: string | null; clinicLocation: string | null }>();
+    const specialty = actorProfile?.specialty ?? actor.specialty;
+    const isPhysio = specialty.includes("Physio");
+    const isNutrition = specialty.includes("Nutrition");
+    const isPsychology = specialty.includes("Psych");
+    const resolvedActor = {
+      ...actor,
+      name: actorProfile?.name ?? actor.name,
+      specialty,
+      defaultEncounterType: actorProfile?.defaultEncounterType ?? (isPhysio ? "Physiotherapy Review" : isNutrition ? "Nutrition Follow-up" : isPsychology ? "Performance Psychology" : "Medical Review"),
+      clinicCity: actorProfile?.clinicCity ?? (isPhysio || isPsychology ? "Dhahran" : "Riyadh"),
+      clinicType: actorProfile?.clinicType ?? (isPhysio ? "Physiotherapy Clinic" : isNutrition ? "Sports Nutrition Clinic" : isPsychology ? "Sports Psychology Clinic" : "Sports Medicine Clinic"),
+      clinicLocation: actorProfile?.clinicLocation ?? (isPhysio || isPsychology ? "SOPCare Dhahran Training Center" : "Riyadh High Performance Center"),
+    };
     const [athletes, encounters, practitioners, activities, sports, teams, injuries, injuryHistory, rehabilitationPlans, rehabilitationPhases, rehabilitationExercises, rehabilitationSessions] = await Promise.all([
       db.prepare(`
         SELECT a.id, a.mrn, a.first_name AS firstName, a.last_name AS lastName,

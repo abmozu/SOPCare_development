@@ -19,6 +19,10 @@ export const practitionerProfiles = pgTable("practitioner_profiles", {
   userId: text("user_id").notNull().references(() => users.id),
   specialty: text("specialty").notNull(),
   credentials: text("credentials"),
+  defaultEncounterType: text("default_encounter_type").notNull().default("Medical Review"),
+  clinicCity: text("clinic_city").notNull().default("Riyadh"),
+  clinicType: text("clinic_type").notNull().default("Sports Medicine Clinic"),
+  clinicLocation: text("clinic_location").notNull().default("SOPCare Performance Center"),
   ...timestamps,
 }, (table) => [uniqueIndex("idx_practitioner_profiles_user_id").on(table.userId)]);
 

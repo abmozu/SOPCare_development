@@ -15,6 +15,13 @@
       "when": 1786440301736,
       "tag": "0001_athlete_clinical_safety",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786533600000,
+      "tag": "0002_practitioner_clinic_defaults",
+      "breakpoints": true
     }
   ]
 }
