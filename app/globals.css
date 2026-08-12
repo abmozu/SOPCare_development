@@ -1,6 +1,6 @@
 Exit code: 0
-Wall time: 0.6 seconds
-Total output lines: 490
+Wall time: 0.7 seconds
+Total output lines: 505
 Output:
 @import "tailwindcss";
 
@@ -20,6 +20,14 @@ Output:
   --rose: #b85f65;
   --shadow: 0 18px 48px rgba(20, 47, 39, 0.08);
 }
+
+.rich-history-input { overflow: hidden; border: 1px solid #d9e5de; border-radius: 12px; background: #fff; }
+.rich-history-input .history-content { min-height: 210px; }
+.rich-history-input .history-content:empty::before { content: attr(data-placeholder); color: #7d8f86; pointer-events: none; }
+.history-field { gap: 8px; }
+.encounter-history { margin: 18px; padding: 24px 26px; min-height: 330px; border: 1px solid #d9e5de; border-radius: 14px; background: #fff; }.encounter-history-content { color: #203a30; font-size: 16px; line-height: 1.85; letter-spacing: .002em; }.encounter-history-content p { margin: 0 0 16px; }.encounter-history-content ul, .encounter-history-content ol { margin: 0 0 16px; padding-left: 27px; }.amendment-editor { margin: 18px; padding: 18px; display: grid; gap: 14px; border: 1px solid #e2c783; border-radius: 13px; background: #fffaf0; }.amendment-editor label { display: grid; gap: 7px; color: #355448; font-size: 12px; font-weight: 750; }.amendment-editor input { min-height: 42px; padding: 10px 12px; border: 1px solid #d5c296; border-radius: 8px; font-size: 14px; }.amendment-editor > div:last-child { display: flex; justify-content: flex-end; gap: 8px; }.amendment-content { min-height: 220px; padding: 15px; border: 1px solid #d5c296; border-radius: 9px; color: #203a30; background: #fff; font-size: 15px; font-weight: 400; line-height: 1.8; outline: none; }.amendment-content:focus { box-shadow: inset 0 0 0 2px #e7c87e; }.amendment-message { margin: 0 18px 18px; color: #49685c; font-size: 13px; font-weight: 650; }.amendment-log { margin: 0 18px 22px; padding: 18px; border-top: 1px solid #dfe8e3; }.amendment-log h4 { margin: 0 0 12px; color: #24483a; font-size: 13px; }.amendment-log > div { padding: 12px 0; border-top: 1px solid #edf1ee; }.amendment-log strong { color: #24483a; font-size: 12px; }.amendment-log span { margin-left: 9px; color: #718078; font-size: 11px; }.amendment-log p { margin: 5px 0 0; color: #53665d; font-size: 13px; line-height: 1.55; }
+.encounter-history-content[contenteditable="true"] { min-height: 280px; padding: 3px; outline: 0; box-shadow: inset 0 0 0 2px #e7c87e; }.history-amend-actions { margin-top: 18px; display: flex; justify-content: flex-end; gap: 9px; }.amendment-times { margin: 0 18px 22px; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; color: #718078; font-size: 11px; }.amendment-times span { padding: 5px 8px; border-radius: 6px; background: #f2f6f3; }
+@media print { .report-history { margin-top: 12px; padding: 13px 14px; border: 1px solid #dce5e0; border-radius: 8px; break-inside: avoid; }.report-history small { display: block; margin-bottom: 7px; color: #52635b; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }.report-history div { color: #46564f; font-size: 10px; line-height: 1.6; }.report-history p { margin: 0 0 7px; }.report-history ul, .report-history ol { margin: 0 0 7px; padding-left: 18px; } }
 
 * { box-sizing: border-box; }
 html { background: var(--background); scroll-behavior: smooth; }
@@ -60,7 +68,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .top-actions { display: flex; align-items: center; gap: 16px; }
 .icon-button { position: relative; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; background: #fff; cursor: pointer; font-size: 18px; }
 .notification-dot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--rose); border: 1px solid #fff; }
-.account { display: flex; align-items: center; gap: 9px; }
+.account { padding: 0; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .account strong, .account small { display: block; }
 .account strong { font-size: 11px; }
 .account small { margin-top: 2px; color: var(--muted); font-size: 9px; }
@@ -147,53 +155,10 @@ tbody tr { cursor: pointer; transition: .18s ease; } tbody tr:hover { background
 .row-menu { width: 27px; height: 27px; border: 0; border-radius: 50%; background: #f0f4f1; cursor: pointer; color: #73807a; font-size: 17px; }
 .empty-state { min-height: 340px; display: grid; place-items: center; align-content: center; text-align: center; color: var(--muted); }.empty-state > span { font-size: 28px; }.empty-state h3 { margin: 10px 0 5px; color: var(--ink); }.empty-state p { margin: 0 0 17px; font-size: 11px; }.compact-empty { min-height: 180px; }
 
-.back-link { margin: 0 0 17px; padding: 0; border: 0; background: transparent; color: var(--green); font-size: 10px; font-weight: 700; cursor: pointer; }
-.profile-hero { min-height: 176px; padding: 30px 31px; display: flex; align-items: center; justify-content: space-between; gap: 25px; border-radius: 18px; color: #fff; background: linear-gradient(120deg, var(--forest-deep), var(--forest)); position: relative; overflow: hidden; }
-.profile-hero::after { content: ""; position: absolute; width: 310px; height: 310px; right: -120px; top: -170px; border: 1px solid rgba(255,255,255,.1); border-radius: 50%; box-shadow: 0 0 0 29px rgba(255,255,255,.02); }
-.profile-identity { position: relative; z-index: 2; display: flex; align-items: center; gap: 19px; }
-.profile-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }.profile-title-row h1 { margin: 0; font-size: 30px; letter-spacing: -.04em; }.profile-title-row .status { background: rgba(255,255,255,.12); color: #d7e7e1; }
-.profile-identity p { margin: 7px 0 15px; color: rgba(255,255,255,.62); font-size: 10px; }.profile-identity p span { margin: 0 5px; color: rgba(255,255,255,.27); }
-.identity-meta { display: flex; gap: 25px; }.identity-meta span { font-size: 10px; }.identity-meta small { display: block; margin-bottom: 4px; color: rgba(255,255,255,.42); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
-.profile-actions { position: relative; z-index: 2; display: flex; gap: 8px; }.profile-hero .button.secondary { color: #fff; border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.08); }.profile-hero .button.primary { border-color: var(--gold); background: var(--gold); color: var(--forest-deep); }
-.tabs { min-height: 58px; margin-bottom: 17px; padding: 0 11px; display: flex; align-items: end; gap: 4px; border-bottom: 1px solid #dce2de; overflow-x: auto; }
-.tabs button { min-height: 48px; padding: 0 15px; position: relative; border: 0; background: transparent; color: #74807a; cursor: pointer; font-size: 10px; font-weight: 650; white-space: nowrap; }.tabs button.active { color: var(--green); }.tabs button.active::after { content: ""; position: absolute; inset: auto 14px -1px; height: 2px; background: var(--green); }
-.profile-grid { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(270px,.65fr); gap: 17px; }.profile-main { display: grid; gap: 17px; align-content: start; }.profile-side { display: grid; gap: 17px; align-content: start; }
-.updated { color: #89948f; font-size: 8px; }
-.summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }.summary-item { min-height: 86px; padding: 19px 21px; border-right: 1px solid #edf0ee; border-bottom: 1px solid #edf0ee; }.summary-item:nth-child(2n) { border-right: 0; }.summary-item:nth-last-child(-n+2) { border-bottom: 0; }.summary-item > small { display: block; margin-bottom: 9px; color: #7c8983; font-size: 8px; text-transform: uppercase; letter-spacing: .05em; }.summary-item > strong { font-size: 10px; }.summary-item .muted { color: #76817c; font-weight: 500; }.alert-text { color: #a24d52; }
-.compact { overflow: hidden; }.circle-add { width: 29px; height: 29px; border: 1px solid #d9e0dc; border-radius: 50%; background: #fff; color: var(--green); cursor: pointer; }.care-list { padding: 7px 19px; }.care-person { min-height: 59px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #edf0ee; }.care-person:last-child { border-bottom: 0; }.care-person strong, .care-person small { display: block; }.care-person strong { font-size: 10px; }.care-person small { margin-top: 3px; color: #7b8782; font-size: 8px; }.care-person i { margin-left: …20095 tokens truncated…acing: .01em; }
-.visit-card-copy strong { font-size: 14px; font-weight: 800; letter-spacing: .01em; }
-.visit-card-copy small { font-size: 12px; font-weight: 750; }
-.visit-card-copy p { color: #4e6259; font-size: 12px; line-height: 1.6; }
-.medical-file-filters label, .chronology-mark, .free-text-chip { font-size: 11px; font-weight: 750; }
-.consultation-meta > span { color: #30443b; font-size: 12px; font-weight: 700; line-height: 1.45; }
-.consultation-meta small, .chief-complaint span { color: #63736c; font-size: 10px; font-weight: 800; }
-.chief-complaint p { color: #253b32; font-size: 14px; line-height: 1.6; }
-.restricted-medical-file { padding: 39px 24px; }
-.restricted-medical-file h3 { color: #38443c; font-size: 16px; font-weight: 750; }
-.restricted-medical-file p { color: #5e6258; font-size: 12px; line-height: 1.6; }
-.visit-completion-bar { padding: 15px 16px; }
-.visit-completion-bar strong, .finish-visit-note strong { font-size: 14px; font-weight: 800; }
-.visit-completion-bar small, .finish-visit-note small { color: #556961; font-size: 11px; line-height: 1.5; }
-.encounter-author-strip small, .selected-visit-author small, .visit-context small, .linked-diagnosis small { font-size: 10px; font-weight: 750; }
-.encounter-author-strip strong, .selected-visit-author strong, .visit-context strong, .linked-diagnosis strong { font-size: 13px; }
-.encounter-author-strip p, .selected-visit-author p, .visit-context dd, .medical-empty p { font-size: 11px; line-height: 1.5; }
-.sports-soap-history h4 { font-size: 12px; }
-.sports-soap-history p { color: #42574d; font-size: 12px; line-height: 1.65; }
-
-/* Athlete records, injury episodes, and rehabilitation: the same clinical reading standard. */
-.registry-tools select, .table-search input, .result-count { font-size: 12px; }
-th { font-size: 10px; letter-spacing: .075em; }
-.athlete-cell strong, td > strong { font-size: 13px; font-weight: 750; }
-.athlete-cell small, .cell-sub { color: #596b63; font-size: 11px; line-height: 1.45; }
-.sport-roster-groups button strong, .all-athlete-cards strong { font-size: 14px; }
-.sport-roster-groups button small, .all-athlete-cards small { color: #52655c; font-size: 12px; }
-.all-athlete-cards i { color: #6d7a74; font-size: 11px; }
-.profile-kicker { font-size: 11px; }
-.profile-title-row h1 { font-size: 36px; }
-.profile-identity p { color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.55; }
-.identity-meta span { font-size: 13px; }
-.identity-meta small { color: rgba(255,255,255,.65); font-size: 10px; font-weight: 750; }
-.tabs button { font-size: 13px; font-weight: 700; }
+.back-link { min-height: 38px; margin: 0 0 19px; padding: 0 16px; display: inline-flex; align-items: center; border: 1px solid #bcd8ca; border-radius: 10px; color: var(--green); background: #f3faf6; box-shadow: 0 5px 13px rgba(0,108,70,.06); font-size: 13px; font-weight: 750; cursor: pointer; transition: .18s ease; }.back-link:hover { border-color: #5b9c7d; background: #eaf6ef; transform: translateY(-1px); }
+.profile-hero { min-height: 176px; padding: 30px 31px; display: flex; align-items: center; justify-content: space-between; gap: 25px; border-radius: 18px; color: #fff; background: linear-gradient(120deg, var(--forest-deep), var(--fore…23071 tokens truncated…1; font-size: 13px; line-height: 1.35; }.safety-card p { margin: 5px 0 0; color: #718078; font-size: 10px; line-height: 1.45; }.safety-card .button { grid-column: 2; justify-self: start; margin-top: 2px; }.check-field { display: flex !important; align-items: center; gap: 8px; color: #334940; font-size: 13px; font-weight: 650; }.check-field input { width: auto; }
+.safety-card .safety-value { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }.safety-value > span { display: inline-flex; align-items: center; white-space: nowrap; }.safety-value i { margin: 0 7px 0 4px; color: #b37b22; font-size: 11px; font-style: normal; }
+.safety-entry { margin-top: 7px; display: flex; gap: 9px; }.safety-entry input { min-width: 0; flex: 1; font-size: 14px; font-weight: 600; }.safety-entry .button { flex: 0 0 auto; }.safety-chips { display: flex; flex-wrap: wrap; gap: 8px; }.safety-chips > span { min-height: 34px; padding: 6px 8px 6px 11px; display: inline-flex; align-items: center; gap: 8px; color: #184235; border: 1px solid #b9dacc; border-radius: 9px; background: #eef8f3; font-size: 13px; font-weight: 700; line-height: 1.2; }.safety-chips > span + span { border-left: 4px solid #7db39b; }.safety-chips button { width: 20px; height: 20px; padding: 0; display: grid; place-items: center; color: #41685a; border: 0; border-radius: 6px; background: #d8eee3; cursor: pointer; font-size: 16px; line-height: 1; }.safety-chips button:hover { color: #fff; background: #9e3d46; }.none-option { min-height: 66px; padding: 13px 15px; display: flex !important; align-items: center; gap: 11px; border: 1px solid #d6e2dc; border-radius: 11px; background: #f8fbf9; cursor: pointer; }.none-option:hover { border-color: #89b8a4; background: #f1f8f4; }.none-option input { width: 18px; height: 18px; margin: 0; accent-color: var(--green); }.none-option strong, .none-option small { display: block; }.none-option strong { color: #24483c; font-size: 13px; font-weight: 750; }.none-option small { margin-top: 3px; color: #6d7d75; font-size: 11px; line-height: 1.35; }
 .summary-item > small { color: #63736c; font-size: 10px; font-weight: 800; }
 .summary-item > strong { font-size: 13px; line-height: 1.5; }
 .care-person strong { font-size: 13px; }
@@ -250,8 +215,9 @@ th { font-size: 10px; letter-spacing: .075em; }
 }
 
 @media (max-width: 820px) {
-  .sidebar { display: none; }.main-shell { margin-left: 0; padding-bottom: 63px; }.topbar { height: 64px; padding: 0 16px; }.mobile-brand { display: flex; gap: 8px; align-items: center; }.mobile-brand .brand-mark { width: 31px; height: 31px; border-radius: 9px 9px 3px 9px; font-size: 15px; }.mobile-brand strong { font-size: 15px; }.global-search { width: min(330px,52vw); }.account > span:not(.avatar), .chevron { display: none; }.prototype-banner { font-size: 9px; }.content { padding: 30px 18px 60px; }.mobile-nav { position: fixed; inset: auto 0 0; z-index: 50; height: 66px; display: grid; grid-template-columns: repeat(6,1fr); border-top: 1px solid var(--line); background: rgba(255,255,255,.97); backdrop-filter: blur(12px); }.mobile-nav button { border: 0; background: transparent; display: grid; place-items: center; align-content: center; gap: 4px; color: #79857f; font-size: 9px; }.mobile-nav button span { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #dce3df; border-radius: 7px; font-size: 10px; }.mobile-nav button.active { color: var(--green); font-weight: 800; }.mobile-nav button.active span { color: #fff; border-color: var(--green); background: var(--green); }.hero-card { padding: 34px; flex-direction: column; align-items: stretch; }.hero-board { width: 100%; flex-basis: auto; }.care-orbit { display: none; }.overview-grid { grid-template-columns: 1fr; }.profile-hero { align-items: flex-start; flex-direction: column; }.profile-actions { width: 100%; }.profile-actions .button { flex: 1; }.team-directory { grid-template-columns: repeat(2,1fr); }.injury-hero { align-items: flex-start; flex-direction: column; }.injury-hero-actions { justify-content: flex-start; }
-  .medical-file-commandbar { align-items: flex-start; flex-direction: column; }.record-access-note { max-width: none; width: 100%; }.athlete-roster-list { grid-template-columns: repeat(2,minmax(180px,1fr)); }.medical-file-workspace { grid-template-columns: 1fr; }.visit-history, .diagnosis-panel { border: 0; border-bottom: 1px solid #e1e7e3; }.diagnosis-panel { grid-column: auto; }.visit-history-list { max-height: 380px; }.medical-file-filters { grid-template-columns: repeat(2,1fr); }
+  .sidebar { display: none; }.main-shell { margin-left: 0; padding-bottom: 63px; }.topbar { height: 64px; padding: 0 16px; }.mobile-brand { display: flex; gap: 8px; align-items: center; }.mobile-brand .brand-mark { width: 31px; height: 31px; border-radius: 9px 9px 3px 9px; font-size: 15px; }.mobile-brand strong { font-size: 15px; }.global-search { width: min(330px,52vw); }.account > span:not(.avatar), .chevron { display: none; }.prototype-banner { font-size: 9px; }.content { padding: 30px 18px 60px; }.mobile-nav { position: fixed; inset: auto 0 0; z-index: 50; height: 66px; display: grid; grid-template-columns: repeat(5,1fr); border-top: 1px solid var(--line); background: rgba(255,255,255,.97); backdrop-filter: blur(12px); }.mobile-nav button { border: 0; background: transparent; display: grid; place-items: center; align-content: center; gap: 4px; color: #79857f; font-size: 9px; }.mobile-nav button span { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #dce3df; border-radius: 7px; font-size: 10px; }.mobile-nav button.active { color: var(--green); font-weight: 800; }.mobile-nav button.active span { color: #fff; border-color: var(--green); background: var(--green); }.hero-card { padding: 34px; flex-direction: column; align-items: stretch; }.hero-board { width: 100%; flex-basis: auto; }.care-orbit { display: none; }.overview-grid { grid-template-columns: 1fr; }.profile-hero { align-items: flex-start; flex-direction: column; }.profile-actions { width: 100%; }.profile-actions .button { flex: 1; }.team-directory { grid-template-columns: repeat(2,1fr); }.injury-hero { align-items: flex-start; flex-direction: column; }.injury-hero-actions { justify-content: flex-start; }.clinical-safety-grid { grid-template-columns: 1fr; }.clinical-safety-head { align-items: start; flex-direction: column; }
+  .medical-file-commandbar { align-items: flex-start; flex-direction: column; }.record-access-note { max-width: none; width: 100%; }.athlete-roster-list { grid-template-columns: repeat(2,minmax(180px,1fr)); }.medical-file-workspace, .medical-file-two-column { height: auto; min-height: 0; grid-template-columns: 1fr; }.visit-history, .medical-file-two-column .visit-history, .diagnosis-panel { height: auto; min-height: 0; border: 0; border-bottom: 1px solid #e1e7e3; }.consultation-panel, .medical-file-two-column .consultation-panel { height: auto; min-height: 0; overflow: visible; }.consultation-scroll { overflow: visible; }.diagnosis-panel { grid-column: auto; }.visit-history-list { max-height: 380px; }.medical-file-filters { grid-template-columns: repeat(2,1fr); }
+  .visit-summary-cards { grid-template-columns: 1fr 1fr; }.visit-summary-cards .visit-reason-card { grid-column: 1 / -1; }
   .sport-roster-groups, .all-athlete-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 

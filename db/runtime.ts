@@ -1,4 +1,8 @@
+Exit code: 0
+Wall time: 0.5 seconds
+Output:
 import { getPostgres } from "./postgres";
+import { getSotcAthletes } from "./sotc-athletes";
 import { env } from "cloudflare:workers";
 
 const seedStatements = [
@@ -29,14 +33,14 @@ const seedStatements = [
   ["INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)", "user-sara", "role-nutrition"],
   ["INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)", "user-noura", "role-psych"],
   ["INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)", "user-yousef", "role-admin"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-1", "DEMO-0001", "Demo", "Athlete 01", "1998-03-14", "Male", "sport-athletics", "400 m", "Right", "Modified Training", "NSAID sensitivity", "Demo Contact 01 · Not applicable", "2026-08-07", "#006C46"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-2", "DEMO-0002", "Demo", "Athlete 02", "2001-11-02", "Female", "sport-taekwondo", "−57 kg", "Right", "Available", "None recorded", "Demo Contact 02 · Not applicable", null, "#BB7B43"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-3", "DEMO-0003", "Demo", "Athlete 03", "1995-07-23", "Male", "sport-wheelchair", "T54 800 m", "Right", "Return-to-Sport Review", "Latex allergy", "Demo Contact 03 · Not applicable", "2026-08-06", "#397F91"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-4", "DEMO-0004", "Demo", "Athlete 04", "2003-05-19", "Female", "sport-swimming", "200 m freestyle", "Left", "Under Treatment", "Asthma action plan on file", "Demo Contact 04 · Not applicable", "2026-08-05", "#6A5E8C"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-5", "DEMO-0005", "Demo", "Athlete 05", "1999-09-30", "Male", "sport-athletics", "Long jump", "Right", "Available", "None recorded", "Demo Contact 05 · Not applicable", null, "#2F765F"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-6", "DEMO-0006", "Demo", "Athlete 06", "2000-01-16", "Female", "sport-wheelchair", "T53 400 m", "Left", "Available", "None recorded", "Demo Contact 06 · Not applicable", null, "#A45D65"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-7", "DEMO-0007", "Demo", "Athlete 07", "2004-08-11", "Female", "sport-swimming", "100 m butterfly", "Right", "Modified Training", "None recorded", "Demo Contact 07 · Not applicable", "2026-08-10", "#B1854F"],
-  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-8", "DEMO-0008", "Demo", "Athlete 08", "1997-12-04", "Male", "sport-taekwondo", "+80 kg", "Left", "Available", "None recorded", "Demo Contact 08 · Not applicable", null, "#4D7D72"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-1", "DEMO-0001", "Demo", "Athlete 01", "1998-03-14", "Male", "sport-athletics", "400 m", "Right", "Modified Training", "NSAID sensitivity", "Demo Contact 01 Â· Not applicable", "2026-08-07", "#006C46"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-2", "DEMO-0002", "Demo", "Athlete 02", "2001-11-02", "Female", "sport-taekwondo", "âˆ’57 kg", "Right", "Available", "None recorded", "Demo Contact 02 Â· Not applicable", null, "#BB7B43"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-3", "DEMO-0003", "Demo", "Athlete 03", "1995-07-23", "Male", "sport-wheelchair", "T54 800 m", "Right", "Return-to-Sport Review", "Latex allergy", "Demo Contact 03 Â· Not applicable", "2026-08-06", "#397F91"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-4", "DEMO-0004", "Demo", "Athlete 04", "2003-05-19", "Female", "sport-swimming", "200 m freestyle", "Left", "Under Treatment", "Asthma action plan on file", "Demo Contact 04 Â· Not applicable", "2026-08-05", "#6A5E8C"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-5", "DEMO-0005", "Demo", "Athlete 05", "1999-09-30", "Male", "sport-athletics", "Long jump", "Right", "Available", "None recorded", "Demo Contact 05 Â· Not applicable", null, "#2F765F"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-6", "DEMO-0006", "Demo", "Athlete 06", "2000-01-16", "Female", "sport-wheelchair", "T53 400 m", "Left", "Available", "None recorded", "Demo Contact 06 Â· Not applicable", null, "#A45D65"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-7", "DEMO-0007", "Demo", "Athlete 07", "2004-08-11", "Female", "sport-swimming", "100 m butterfly", "Right", "Modified Training", "None recorded", "Demo Contact 07 Â· Not applicable", "2026-08-10", "#B1854F"],
+  ["INSERT OR IGNORE INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, follow_up_date, accent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "ath-8", "DEMO-0008", "Demo", "Athlete 08", "1997-12-04", "Male", "sport-taekwondo", "+80 kg", "Left", "Available", "None recorded", "Demo Contact 08 Â· Not applicable", null, "#4D7D72"],
   ["INSERT OR IGNORE INTO athlete_team_memberships (athlete_id, team_id) VALUES (?, ?)", "ath-1", "team-elite"],
   ["INSERT OR IGNORE INTO athlete_team_memberships (athlete_id, team_id) VALUES (?, ?)", "ath-2", "team-elite"],
   ["INSERT OR IGNORE INTO athlete_team_memberships (athlete_id, team_id) VALUES (?, ?)", "ath-3", "team-para"],
@@ -102,13 +106,13 @@ const rehabilitationSeedStatements = [
   ["INSERT OR IGNORE INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "phase-3-1", "rehab-3", 1, "Calm & activate", "Active", "Settle end-range pain and restore cuff activation", "Medical review completed", "Pain-free activation and full comfortable range", 55, "2026-08-02T07:00:00Z"],
   ["INSERT OR IGNORE INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", "phase-3-2", "rehab-3", 2, "Build swim capacity", "Locked", "Progress shoulder endurance under swim-specific load", "Full comfortable range", "Stable response to 80% pull volume", 0],
   ["INSERT OR IGNORE INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", "phase-3-3", "rehab-3", 3, "Return to full pool", "Locked", "Restore full training availability", "80% pull volume stable", "Two full sessions without symptom increase", 0],
-  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-1", "phase-1-2", "Long-lever hamstring bridge", "4 × 8", "Controlled 3-second eccentric", "Active", 1],
-  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-2", "phase-1-2", "Romanian deadlift", "4 × 6", "RPE 7 with symmetrical loading", "Active", 2],
-  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-3", "phase-1-2", "Tempo run exposure", "6 × 80 m", "80% speed, pain no more than 2/10", "Active", 3],
-  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-4", "phase-2-4", "Race-pace propulsion intervals", "5 × 3 min", "Competition cadence, stable technique", "Active", 1],
+  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-1", "phase-1-2", "Long-lever hamstring bridge", "4 Ã— 8", "Controlled 3-second eccentric", "Active", 1],
+  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-2", "phase-1-2", "Romanian deadlift", "4 Ã— 6", "RPE 7 with symmetrical loading", "Active", 2],
+  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-3", "phase-1-2", "Tempo run exposure", "6 Ã— 80 m", "80% speed, pain no more than 2/10", "Active", 3],
+  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-4", "phase-2-4", "Race-pace propulsion intervals", "5 Ã— 3 min", "Competition cadence, stable technique", "Active", 1],
   ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-5", "phase-2-4", "Competition simulation", "1 full protocol", "No symptom increase at 24 hours", "Active", 2],
-  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-6", "phase-3-1", "Isometric external rotation", "5 × 30 sec", "Pain-free at 60% effort", "Active", 1],
-  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-7", "phase-3-1", "Serratus wall slide", "3 × 10", "Smooth upward rotation", "Active", 2],
+  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-6", "phase-3-1", "Isometric external rotation", "5 Ã— 30 sec", "Pain-free at 60% effort", "Active", 1],
+  ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-7", "phase-3-1", "Serratus wall slide", "3 Ã— 10", "Smooth upward rotation", "Active", 2],
   ["INSERT OR IGNORE INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)", "exercise-8", "phase-3-1", "Reduced-volume swim", "20 min", "Technique focus below 60% pull volume", "Active", 3],
   ["INSERT OR IGNORE INTO rehabilitation_sessions (id, plan_id, phase_id, practitioner_id, session_date, session_type, status, load_score, pain_pre, pain_post, phase_progress, notes, next_action, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "session-1", "rehab-1", "phase-1-2", "pr-omar", "2026-08-04T09:30:00Z", "Field + gym rehabilitation", "Completed", 7, 1, 1, 65, "Completed strength block and 80% tempo exposure without symptom increase.", "Repeat field exposure before progressing speed.", "2026-08-04T10:05:00Z"],
   ["INSERT OR IGNORE INTO rehabilitation_sessions (id, plan_id, phase_id, practitioner_id, session_date, session_type, status, notes, next_action) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", "session-2", "rehab-1", "phase-1-2", "pr-omar", "2026-08-06T08:30:00Z", "Field rehabilitation", "Scheduled", "", "Review response before phase decision."],
@@ -121,13 +125,13 @@ const rehabilitationSeedStatements = [
 const encounterMetadataSeedStatements = [
   ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Dhahran", "Physiotherapy Clinic", "SOPCare Dhahran Training Center", "Right hamstring strain with improving load tolerance", "enc-1"],
   ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Medicine Clinic", "Riyadh High Performance Center", "Training-related left shoulder overload", "enc-2"],
-  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Medicine Clinic", "Riyadh High Performance Center", "Right shoulder overload — return-to-sport review pending", "enc-3"],
+  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Medicine Clinic", "Riyadh High Performance Center", "Right shoulder overload â€” return-to-sport review pending", "enc-3"],
   ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Dammam", "Sports Nutrition Clinic", "Dammam National Team Hub", "Competition-week fueling strategy review", "enc-4"],
-  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Dhahran", "Physiotherapy Clinic", "SOPCare Dhahran Training Center", "Upper-limb load monitoring — asymptomatic", "enc-5"],
+  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Dhahran", "Physiotherapy Clinic", "SOPCare Dhahran Training Center", "Upper-limb load monitoring â€” asymptomatic", "enc-5"],
   ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Dammam", "Sports Medicine Clinic", "Dammam National Team Hub", "Travel-related fatigue without medical red flags", "enc-6"],
-  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Medicine Clinic", "Riyadh High Performance Center", "Pre-camp screen — medically available", "enc-7"],
+  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Medicine Clinic", "Riyadh High Performance Center", "Pre-camp screen â€” medically available", "enc-7"],
   ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Nutrition Clinic", "Riyadh High Performance Center", "Suboptimal post-session recovery intake", "enc-8"],
-  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Medicine Clinic", "Riyadh High Performance Center", "Right hamstring strain — stable improvement", "enc-9"],
+  ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Riyadh", "Sports Medicine Clinic", "Riyadh High Performance Center", "Right hamstring strain â€” stable improvement", "enc-9"],
   ["UPDATE encounters SET clinic_city = ?, clinic_type = ?, clinic_location = ?, diagnosis = ? WHERE id = ?", "Dhahran", "Sports Psychology Clinic", "SOPCare Dhahran Training Center", "Restricted performance psychology formulation", "enc-10"],
 ];
 
@@ -135,9 +139,63 @@ export function getD1() {
   return getPostgres();
 }
 
+function rosterId(value: string) {
+  return `sotc-sport-${value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+}
+
+async function ensureSotcRoster(db: ReturnType<typeof getD1>) {
+  const roster = await getSotcAthletes();
+  const imported = await db.prepare("SELECT COUNT(*) AS count FROM athletes WHERE mrn LIKE 'SOTC-%'").first<{ count: number }>();
+  if ((imported?.count ?? 0) >= roster.length) return;
+
+  const existingSports = await db.prepare("SELECT id, name FROM sports").all<{ id: string; name: string }>();
+  const sportIds = new Map(existingSports.results.map((sport) => [sport.name, sport.id]));
+  const requestedSports = [...new Set(roster.map(([, sport]) => sport))];
+  const missingSports = requestedSports.filter((sport) => !sportIds.has(sport));
+  if (missingSports.length) {
+    await db.batch(missingSports.map((sport) => db.prepare("INSERT INTO sports (id, name) VALUES (?, ?) ON CONFLICT (name) DO NOTHING").bind(rosterId(sport), sport)));
+  }
+  const resolvedSports = await db.prepare("SELECT id, name FROM sports").all<{ id: string; name: string }>();
+  const resolvedSportIds = new Map(resolvedSports.results.map((sport) => [sport.name, sport.id]));
+  const accents = ["#006C46", "#397F91", "#6A5E8C", "#B1854F", "#2F765F", "#A45D65"];
+  const statements = roster.map(([name, sport, suppliedDiscipline], index) => {
+    const words = name.trim().split(/\s+/);
+    const firstName = words.shift() || name;
+    const lastName = words.join(" ") || "â€”";
+    return db.prepare(`INSERT INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, accent)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (mrn) DO NOTHING`)
+      .bind(`sotc-ath-${String(index + 1).padStart(3, "0")}`, `SOTC-${String(index + 1).padStart(3, "0")}`, firstName, lastName, "", "Not recorded", resolvedSportIds.get(sport), suppliedDiscipline || "Not recorded", "Not recorded", "Available", "None recorded", "Not recorded", accents[index % accents.length]);
+  });
+  for (let start = 0; start < statements.length; start += 50) await db.batch(statements.slice(start, start + 50));
+}
+
 export async function ensureDatabase() {
   const db = getD1();
   await db.prepare("SELECT 1").run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS portal_users (
+    id text PRIMARY KEY,
+    username text NOT NULL UNIQUE,
+    password_hash text NOT NULL,
+    email text NOT NULL UNIQUE,
+    full_name text NOT NULL,
+    phone_number text NOT NULL DEFAULT '',
+    professional_role_id text NOT NULL,
+    professional_role text NOT NULL,
+    job_title text NOT NULL DEFAULT '',
+    department text NOT NULL DEFAULT '',
+    status text NOT NULL DEFAULT 'Active',
+    workspace_ids text NOT NULL DEFAULT '[]',
+    role_ids text NOT NULL DEFAULT '[]',
+    permission_ids text NOT NULL DEFAULT '[]',
+    permission_overrides text NOT NULL DEFAULT '{"grant":[],"revoke":[]}',
+    last_active text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
+
+  // Import the supplied athlete roster once. The import is idempotent, so a
+  // partial first run is safely completed on the next workspace load.
+  await ensureSotcRoster(db);
 
   const runtime = env as unknown as {
     APP_ENV?: string;
@@ -174,3 +232,4 @@ export async function writeAudit(actorId: string, action: string, entityType: st
     .bind(actorId, action, entityType, entityId, summary)
     .run();
 }
+

@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.5 seconds
+Output:
 import { ensureDatabase } from "../../../db/runtime";
 import { apiError, requireApiActor } from "../_utils";
 
@@ -7,15 +10,43 @@ export async function GET() {
 
   try {
     const db = await ensureDatabase();
-    const actorProfile = await db.prepare(`SELECT u.full_name AS name, pp.specialty
-      FROM users u LEFT JOIN practitioner_profiles pp ON pp.user_id = u.id
-      WHERE u.id = ? OR u.email = ? LIMIT 1`).bind(actor.id, actor.email).first<{ name: string; specialty: string | null }>();
-    const resolvedActor = actorProfile ? { ...actor, name: actorProfile.name, specialty: actorProfile.specialty ?? actor.specialty } : actor;
+    // The clinical workspace must remain available while a database migration is
+    // being rolled out.  Older staging databases do not yet have the optional
+    // practitioner clinic-default columns, so retry with the stable profile
+    // shape and use the specialty defaults below.
+    let actorProfile: { name: string; specialty: string | null; defaultEncounterType: string | null; clinicCity: string | null; clinicType: string | null; clinicLocation: string | null } | null = null;
+    try {
+      actorProfile = await db.prepare(`SELECT u.full_name AS name, pp.specialty,
+        pp.default_encounter_type AS defaultEncounterType, pp.clinic_city AS clinicCity,
+        pp.clinic_type AS clinicType, pp.clinic_location AS clinicLocation
+        FROM users u LEFT JOIN practitioner_profiles pp ON pp.user_id = u.id
+        WHERE u.id = ? OR u.email = ? LIMIT 1`).bind(actor.id, actor.email).first<typeof actorProfile>();
+    } catch {
+      const legacyProfile = await db.prepare(`SELECT u.full_name AS name, pp.specialty
+        FROM users u LEFT JOIN practitioner_profiles pp ON pp.user_id = u.id
+        WHERE u.id = ? OR u.email = ? LIMIT 1`).bind(actor.id, actor.email).first<{ name: string; specialty: string | null }>();
+      actorProfile = legacyProfile ? { ...legacyProfile, defaultEncounterType: null, clinicCity: null, clinicType: null, clinicLocation: null } : null;
+    }
+    const specialty = actorProfile?.specialty ?? actor.specialty;
+    const isPhysio = specialty.includes("Physio");
+    const isNutrition = specialty.includes("Nutrition");
+    const isPsychology = specialty.includes("Psych");
+    const resolvedActor = {
+      ...actor,
+      name: actorProfile?.name ?? actor.name,
+      specialty,
+      defaultEncounterType: actorProfile?.defaultEncounterType ?? (isPhysio ? "Physiotherapy Review" : isNutrition ? "Nutrition Follow-up" : isPsychology ? "Performance Psychology" : "Medical Review"),
+      clinicCity: actorProfile?.clinicCity ?? (isPhysio || isPsychology ? "Dhahran" : "Riyadh"),
+      clinicType: actorProfile?.clinicType ?? (isPhysio ? "Physiotherapy Clinic" : isNutrition ? "Sports Nutrition Clinic" : isPsychology ? "Sports Psychology Clinic" : "Sports Medicine Clinic"),
+      clinicLocation: actorProfile?.clinicLocation ?? (isPhysio || isPsychology ? "SOPCare Dhahran Training Center" : "Riyadh High Performance Center"),
+    };
     const [athletes, encounters, practitioners, activities, sports, teams, injuries, injuryHistory, rehabilitationPlans, rehabilitationPhases, rehabilitationExercises, rehabilitationSessions] = await Promise.all([
       db.prepare(`
         SELECT a.id, a.mrn, a.first_name AS firstName, a.last_name AS lastName,
           a.date_of_birth AS dateOfBirth, a.sex, a.nationality, a.discipline,
           a.dominant_side AS dominantSide, a.status, a.medical_alerts AS medicalAlerts,
+          a.allergies, a.chronic_conditions AS chronicConditions,
+          a.prohibited_medications AS prohibitedMedications,
           a.emergency_contact AS emergencyContact, a.follow_up_date AS followUpDate,
           a.accent, a.updated_at AS updatedAt, s.name AS sport,
           COALESCE(t.name, 'Unassigned') AS team,
@@ -181,3 +212,4 @@ export async function GET() {
     return apiError(error);
   }
 }
+
