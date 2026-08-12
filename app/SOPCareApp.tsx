@@ -554,6 +554,20 @@ type EditableEncounterField = "subjective" | "objective" | "assessment" | "plan"
 
 function VisitReviewEditor({ encounter, onSave }: { encounter: Encounter; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
   const [amending, setAmending] = useState(false);
+  const [draft, setDraft] = useState(encounter.plan);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [amendments, setAmendments] = useState<Array<{ id: string; createdAt: string }>>([]);
+  const loadAmendments = async () => { const response = await fetch(`/api/encounters/${encounter.id}/amendments`); if (response.ok) { const body = await response.json() as { amendments: Array<{ id: string; createdAt: string }> }; setAmendments(body.amendments); } };
+  useEffect(() => { setAmending(false); setDraft(encounter.plan); setMessage(""); void loadAmendments(); }, [encounter.id]);
+  const saveAmendment = async () => { setSaving(true); setMessage(""); const saved = await onSave(encounter.id, { plan: draft }); setSaving(false); if (saved) { setAmending(false); setMessage("Saved."); await loadAmendments(); } else setMessage("The amendment could not be saved. Please try again."); };
+  const history = encounter.plan || [encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).map((item) => `<p>${item}</p>`).join("") || "<p>No clinical history recorded.</p>";
+  const amendmentTimes = amendments.map((item) => new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(item.createdAt)));
+  return <><section className="encounter-history"><div className="encounter-history-content" contentEditable={amending} suppressContentEditableWarning onInput={(event) => setDraft(event.currentTarget.innerHTML)} dangerouslySetInnerHTML={{ __html: amending ? draft : history }} />{amending && <div className="history-amend-actions"><button className="button secondary small" onClick={() => { setAmending(false); setDraft(encounter.plan); }}>Cancel</button><button className="button primary small" disabled={saving} onClick={() => void saveAmendment()}>{saving ? "Saving…" : "Save amendment"}</button></div>}</section>{encounter.canEdit === 1 && <div className="visit-action-footer"><button className="button secondary small" onClick={() => setAmending(true)}>✎ Amend visit</button><button className="button secondary small pdf-button" onClick={() => window.print()}>↓ Download PDF</button></div>}{message && <div className="amendment-message">{message}</div>}{amendmentTimes.length > 0 && <div className="amendment-times">{amendmentTimes.map((time, index) => <span key={`${time}-${index}`}>{time}</span>)}</div>}</>;
+}
+
+function PriorVisitReviewEditor({ encounter, onSave }: { encounter: Encounter; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
+  const [amending, setAmending] = useState(false);
   const [reason, setReason] = useState("");
   const [draft, setDraft] = useState(encounter.plan);
   const [saving, setSaving] = useState(false);
