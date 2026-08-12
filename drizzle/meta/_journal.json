@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 {
   "version": "7",
   "dialect": "postgresql",
@@ -8,6 +11,21 @@
       "when": 1786440301735,
       "tag": "0000_omniscient_bushwacker",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786440301736,
+      "tag": "0001_athlete_clinical_safety",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786533600000,
+      "tag": "0002_practitioner_clinic_defaults",
+      "breakpoints": true
     }
   ]
 }
+

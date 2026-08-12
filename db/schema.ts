@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.7 seconds
+Output:
 import { sql } from "drizzle-orm";
 import { index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
 
@@ -19,6 +22,10 @@ export const practitionerProfiles = pgTable("practitioner_profiles", {
   userId: text("user_id").notNull().references(() => users.id),
   specialty: text("specialty").notNull(),
   credentials: text("credentials"),
+  defaultEncounterType: text("default_encounter_type").notNull().default("Medical Review"),
+  clinicCity: text("clinic_city").notNull().default("Riyadh"),
+  clinicType: text("clinic_type").notNull().default("Sports Medicine Clinic"),
+  clinicLocation: text("clinic_location").notNull().default("SOPCare Performance Center"),
   ...timestamps,
 }, (table) => [uniqueIndex("idx_practitioner_profiles_user_id").on(table.userId)]);
 
@@ -61,6 +68,9 @@ export const athletes = pgTable("athletes", {
   dominantSide: text("dominant_side").notNull(),
   status: text("status").notNull().default("Available"),
   medicalAlerts: text("medical_alerts").notNull().default("None recorded"),
+  allergies: text("allergies").notNull().default("None recorded"),
+  chronicConditions: text("chronic_conditions").notNull().default("None recorded"),
+  prohibitedMedications: text("prohibited_medications").notNull().default("None recorded"),
   emergencyContact: text("emergency_contact").notNull().default("Not provided"),
   followUpDate: text("follow_up_date"),
   accent: text("accent").notNull().default("#006C46"),
@@ -251,3 +261,4 @@ export const auditLogs = pgTable("audit_logs", {
   index("idx_audit_entity").on(table.entityType, table.entityId),
   index("idx_audit_created_at").on(table.createdAt),
 ]);
+

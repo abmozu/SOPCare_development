@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 import { ensureDatabase, writeAudit } from "../../../../db/runtime";
 import { apiError, cleanText, requireApiActor } from "../../_utils";
 
@@ -8,6 +11,22 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   try {
     const { id } = await context.params;
     const payload = await request.json() as Record<string, unknown>;
+    const safetyCategory = cleanText(payload.safetyCategory, 40);
+    const safetyColumns: Record<string, string> = {
+      allergies: "allergies",
+      chronicConditions: "chronic_conditions",
+      prohibitedMedications: "prohibited_medications",
+    };
+    if (safetyCategory) {
+      const column = safetyColumns[safetyCategory];
+      if (!column) return Response.json({ error: "Select a valid clinical safety category." }, { status: 400 });
+      const value = cleanText(payload.value, 1000) || "None recorded";
+      const db = await ensureDatabase();
+      const result = await db.prepare(`UPDATE athletes SET ${column} = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(value, id).run();
+      if (!result.meta.changes) return Response.json({ error: "Athlete not found." }, { status: 404 });
+      await writeAudit(actor.id, "UPDATED", "athlete", id, `Updated athlete ${safetyCategory}`);
+      return Response.json({ ok: true });
+    }
     const status = cleanText(payload.status, 40);
     const medicalAlerts = cleanText(payload.medicalAlerts, 500);
     const emergencyContact = cleanText(payload.emergencyContact, 200);
@@ -28,3 +47,4 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return apiError(error);
   }
 }
+
