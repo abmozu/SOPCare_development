@@ -371,6 +371,56 @@ body { font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif; text-render
 .sports-soap-history h4 { font-size: 12px; }
 .sports-soap-history p { color: #42574d; font-size: 12px; line-height: 1.65; }
 
+/* Athlete records, injury episodes, and rehabilitation: the same clinical reading standard. */
+.registry-tools select, .table-search input, .result-count { font-size: 12px; }
+th { font-size: 10px; letter-spacing: .075em; }
+.athlete-cell strong, td > strong { font-size: 13px; font-weight: 750; }
+.athlete-cell small, .cell-sub { color: #596b63; font-size: 11px; line-height: 1.45; }
+.sport-roster-groups button strong, .all-athlete-cards strong { font-size: 14px; }
+.sport-roster-groups button small, .all-athlete-cards small { color: #52655c; font-size: 12px; }
+.all-athlete-cards i { color: #6d7a74; font-size: 11px; }
+.profile-kicker { font-size: 11px; }
+.profile-title-row h1 { font-size: 36px; }
+.profile-identity p { color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.55; }
+.identity-meta span { font-size: 13px; }
+.identity-meta small { color: rgba(255,255,255,.65); font-size: 10px; font-weight: 750; }
+.tabs button { font-size: 13px; font-weight: 700; }
+.summary-item > small { color: #63736c; font-size: 10px; font-weight: 800; }
+.summary-item > strong { font-size: 13px; line-height: 1.5; }
+.care-person strong { font-size: 13px; }
+.care-person small, .integrity-list li { color: #53645d; font-size: 11px; line-height: 1.5; }
+.encounter-date { font-size: 10px; }
+.encounter-top h4 { font-size: 14px; }
+.encounter-top p { color: #4c6057; font-size: 12px; line-height: 1.6; }
+.encounter-foot { font-size: 11px; }
+.note-preview p { font-size: 12px; line-height: 1.65; }
+.injury-metrics small, .rehab-overview-metrics small { color: #5e7068; font-size: 10px; }
+.injury-metrics p, .rehab-overview-metrics p { color: #61726a; font-size: 11px; line-height: 1.5; }
+.stage-filters button { font-size: 11px; font-weight: 700; }
+.injury-athlete strong { font-size: 15px; }.injury-athlete small { font-size: 11px; }
+.injury-title p, .rehab-detail-identity p { color: rgba(255,255,255,.76); font-size: 12px; line-height: 1.55; }
+.snapshot-grid .summary-item > strong { font-size: 13px; }
+.next-action-card span { font-size: 10px; }
+.next-action-card h3 { font-size: 20px; line-height: 1.45; }
+.next-action-card p { color: rgba(255,255,255,.78); font-size: 12px; }
+.linked-encounters strong, .history-timeline strong, .athlete-injury-list strong { font-size: 13px; }
+.linked-encounters small, .history-timeline small, .athlete-injury-list small { color: #55665f; font-size: 11px; line-height: 1.5; }
+.history-timeline p { color: #42564d; font-size: 12px; line-height: 1.6; }
+.rehab-plan-top small, .rehab-plan-top p { color: rgba(255,255,255,.75); font-size: 11px; line-height: 1.55; }
+.rehab-plan-top h3 { font-size: 17px; line-height: 1.35; }
+.rehab-plan-phase > span, .rehab-plan-phase > small, .rehab-plan-foot small { color: #607169; font-size: 10px; font-weight: 750; }
+.rehab-plan-phase > strong, .rehab-plan-foot span, .rehab-plan-foot b { font-size: 12px; }
+.rehab-link-card div > span { font-size: 10px; }.rehab-link-card h3 { font-size: 16px; }.rehab-link-card p { color: rgba(255,255,255,.78); font-size: 12px; }.rehab-link-card b { font-size: 11px; }
+.rehab-empty-card strong { font-size: 14px; }.rehab-empty-card small, .rehab-empty-card b { font-size: 11px; }
+.rehab-phase-track small { font-size: 9px; font-weight: 750; }.rehab-phase-track strong { font-size: 11px; }
+.current-phase-card > div:first-child > span, .criteria-box small { font-size: 10px; }
+.current-phase-card div > p, .criteria-box p { color: rgba(255,255,255,.78); font-size: 12px !important; line-height: 1.6; }
+.criteria-box strong { font-size: 13px; }
+.rehab-session-list strong { font-size: 13px; }.rehab-session-list p { color: #455a50; font-size: 12px; line-height: 1.55; }.rehab-session-list small { color: #61716a; font-size: 10px; }
+.session-scores span { font-size: 11px; }.session-scores small { font-size: 9px; }
+.rehab-plan-summary dt { color: #617169; font-size: 10px; }.rehab-plan-summary dd { font-size: 12px; }.rehab-goal small, .rehab-precaution small { font-size: 10px; }.rehab-goal p, .rehab-precaution p { color: #40554b; font-size: 12px; line-height: 1.6; }
+.phase-criteria-list strong { font-size: 12px; }.phase-criteria-list small { color: #53655d; font-size: 11px; line-height: 1.55; }
+
 .report-print-template { display: none; }
 
 @media print {
