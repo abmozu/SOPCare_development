@@ -63,6 +63,7 @@ function fullName(athlete: Athlete) {
 }
 
 function age(date: string) {
+  if (!date || Number.isNaN(new Date(`${date}T00:00:00`).getTime())) return "—";
   const dob = new Date(`${date}T00:00:00`);
   const now = new Date();
   let years = now.getFullYear() - dob.getFullYear();

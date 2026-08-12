@@ -1,4 +1,5 @@
 import { getPostgres } from "./postgres";
+import { getSotcAthletes } from "./sotc-athletes";
 import { env } from "cloudflare:workers";
 
 const seedStatements = [
@@ -135,9 +136,43 @@ export function getD1() {
   return getPostgres();
 }
 
+function rosterId(value: string) {
+  return `sotc-sport-${value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+}
+
+async function ensureSotcRoster(db: ReturnType<typeof getD1>) {
+  const roster = await getSotcAthletes();
+  const imported = await db.prepare("SELECT COUNT(*) AS count FROM athletes WHERE mrn LIKE 'SOTC-%'").first<{ count: number }>();
+  if ((imported?.count ?? 0) >= roster.length) return;
+
+  const existingSports = await db.prepare("SELECT id, name FROM sports").all<{ id: string; name: string }>();
+  const sportIds = new Map(existingSports.results.map((sport) => [sport.name, sport.id]));
+  const requestedSports = [...new Set(roster.map(([, sport]) => sport))];
+  const missingSports = requestedSports.filter((sport) => !sportIds.has(sport));
+  if (missingSports.length) {
+    await db.batch(missingSports.map((sport) => db.prepare("INSERT INTO sports (id, name) VALUES (?, ?) ON CONFLICT (name) DO NOTHING").bind(rosterId(sport), sport)));
+  }
+  const resolvedSports = await db.prepare("SELECT id, name FROM sports").all<{ id: string; name: string }>();
+  const resolvedSportIds = new Map(resolvedSports.results.map((sport) => [sport.name, sport.id]));
+  const accents = ["#006C46", "#397F91", "#6A5E8C", "#B1854F", "#2F765F", "#A45D65"];
+  const statements = roster.map(([name, sport, suppliedDiscipline], index) => {
+    const words = name.trim().split(/\s+/);
+    const firstName = words.shift() || name;
+    const lastName = words.join(" ") || "—";
+    return db.prepare(`INSERT INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, accent)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (mrn) DO NOTHING`)
+      .bind(`sotc-ath-${String(index + 1).padStart(3, "0")}`, `SOTC-${String(index + 1).padStart(3, "0")}`, firstName, lastName, "", "Not recorded", resolvedSportIds.get(sport), suppliedDiscipline || "Not recorded", "Not recorded", "Available", "None recorded", "Not recorded", accents[index % accents.length]);
+  });
+  for (let start = 0; start < statements.length; start += 50) await db.batch(statements.slice(start, start + 50));
+}
+
 export async function ensureDatabase() {
   const db = getD1();
   await db.prepare("SELECT 1").run();
+
+  // Import the supplied athlete roster once. The import is idempotent, so a
+  // partial first run is safely completed on the next workspace load.
+  await ensureSotcRoster(db);
 
   const runtime = env as unknown as {
     APP_ENV?: string;
