@@ -169,6 +169,26 @@ async function ensureSotcRoster(db: ReturnType<typeof getD1>) {
 export async function ensureDatabase() {
   const db = getD1();
   await db.prepare("SELECT 1").run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS portal_users (
+    id text PRIMARY KEY,
+    username text NOT NULL UNIQUE,
+    password_hash text NOT NULL,
+    email text NOT NULL UNIQUE,
+    full_name text NOT NULL,
+    phone_number text NOT NULL DEFAULT '',
+    professional_role_id text NOT NULL,
+    professional_role text NOT NULL,
+    job_title text NOT NULL DEFAULT '',
+    department text NOT NULL DEFAULT '',
+    status text NOT NULL DEFAULT 'Active',
+    workspace_ids text NOT NULL DEFAULT '[]',
+    role_ids text NOT NULL DEFAULT '[]',
+    permission_ids text NOT NULL DEFAULT '[]',
+    permission_overrides text NOT NULL DEFAULT '{"grant":[],"revoke":[]}',
+    last_active text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
 
   // Import the supplied athlete roster once. The import is idempotent, so a
   // partial first run is safely completed on the next workspace load.
