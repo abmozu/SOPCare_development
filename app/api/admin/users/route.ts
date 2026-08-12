@@ -22,7 +22,8 @@ export async function POST(request: Request) {
       return Response.json({ error: "Complete all required user details. Passwords must contain at least 6 characters." }, { status: 400 });
     }
     const db = await ensureDatabase();
-    const id = crypto.randomUUID();
+    const existing = await db.prepare("SELECT id FROM portal_users WHERE username = ? OR email = ? LIMIT 1").bind(username, email).first<{ id: string }>();
+    const id = existing?.id ?? crypto.randomUUID();
     const user: PortalUser = {
       id, fullName, username, email,
       phoneNumber: String(body.phoneNumber ?? "").trim(),
@@ -32,6 +33,12 @@ export async function POST(request: Request) {
       roleIds: ["role-clinician"], permissionIds: professionalRole.defaultPermissionIds,
       permissionOverrides: { grant: [], revoke: [] }, lastActive: new Date().toISOString(),
     };
+    if (existing) {
+      await db.prepare(`UPDATE portal_users SET username = ?, password_hash = ?, email = ?, full_name = ?, phone_number = ?, professional_role_id = ?, professional_role = ?, job_title = ?, department = ?, status = ?, workspace_ids = ?, role_ids = ?, permission_ids = ?, permission_overrides = ?, last_active = ?, updated_at = CURRENT_TIMESTAMP::text WHERE id = ?`)
+        .bind(user.username, await hashPassword(password), user.email, user.fullName, user.phoneNumber, user.professionalRoleId, user.professionalRole, user.jobTitle, user.department, user.status, JSON.stringify(user.workspaceIds), JSON.stringify(user.roleIds), JSON.stringify(user.permissionIds), JSON.stringify(user.permissionOverrides), user.lastActive, id).run();
+      await writeAudit(actor.id, "RESTORED", "portal_user", id, `Restored user ${username}`);
+      return Response.json({ user: publicUser(user), restored: true });
+    }
     await db.prepare(`INSERT INTO portal_users (id, username, password_hash, email, full_name, phone_number, professional_role_id, professional_role, job_title, department, status, workspace_ids, role_ids, permission_ids, permission_overrides, last_active)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(id, user.username, await hashPassword(password), user.email, user.fullName, user.phoneNumber, user.professionalRoleId, user.professionalRole, user.jobTitle, user.department, user.status, JSON.stringify(user.workspaceIds), JSON.stringify(user.roleIds), JSON.stringify(user.permissionIds), JSON.stringify(user.permissionOverrides), user.lastActive).run();
