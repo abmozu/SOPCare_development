@@ -44,10 +44,14 @@ function portalUser(row: StoredPortalUser): PortalUser {
   return { id: row.id, username: row.username, email: row.email, fullName: row.full_name, phoneNumber: row.phone_number, professionalRoleId: row.professional_role_id, professionalRole: row.professional_role, jobTitle: row.job_title, department: row.department, status: row.status, workspaceIds: parseList(row.workspace_ids) as PortalUser["workspaceIds"], roleIds: parseList(row.role_ids), permissionIds: parseList(row.permission_ids), permissionOverrides: parseOverrides(row.permission_overrides), lastActive: row.last_active };
 }
 
-export async function storedPortalUsers() {
+async function storedPortalUserRows() {
   const db = await ensureDatabase();
   const rows = await db.prepare("SELECT id, username, password_hash, email, full_name, phone_number, professional_role_id, professional_role, job_title, department, status, workspace_ids, role_ids, permission_ids, permission_overrides, last_active FROM portal_users ORDER BY created_at DESC").all<StoredPortalUser>();
-  return rows.results.map(portalUser);
+  return rows.results;
+}
+
+export async function storedPortalUsers() {
+  return (await storedPortalUserRows()).map(portalUser);
 }
 
 export async function createSessionCookie(userId: string) {
@@ -62,8 +66,8 @@ export function clearSessionCookie() {
 
 export async function authenticate(username: string, password: string) {
   const normalized = username.trim().toLowerCase();
-  const stored = (await storedPortalUsers()).find((candidate) => candidate.username.toLowerCase() === normalized);
-  if (stored) return stored.status === "Active" && stored.password_hash === await hashPassword(password) ? publicUser(stored) : null;
+  const stored = (await storedPortalUserRows()).find((candidate) => candidate.username.toLowerCase() === normalized);
+  if (stored) return stored.status === "Active" && stored.password_hash === await hashPassword(password) ? publicUser(portalUser(stored)) : null;
   const configuredPassword = process.env.SOPCARE_MOCK_PASSWORD;
   if (!configuredPassword) throw new Error("SOPCARE_MOCK_PASSWORD is required for prototype authentication.");
   const user = MOCK_USERS.find((candidate) => candidate.username.toLowerCase() === normalized);
