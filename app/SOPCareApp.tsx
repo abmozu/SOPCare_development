@@ -215,8 +215,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     event.preventDefault();
     if (!selected) return;
     const form = new FormData(event.currentTarget);
-    const noKnown = form.get("noneRecorded") === "on";
-    await apiAction(`/api/athletes/${selected.id}`, { method: "PATCH", body: JSON.stringify({ safetyCategory, value: noKnown ? "None recorded" : form.get("value") }) }, "Clinical safety record updated");
+    await apiAction(`/api/athletes/${selected.id}`, { method: "PATCH", body: JSON.stringify({ safetyCategory, value: form.get("value") }) }, "Clinical safety record updated");
   }
 
   function editClinicalSafety(category: "allergies" | "chronicConditions" | "prohibitedMedications") {
@@ -497,10 +496,8 @@ function RehabilitationDetailView({ plan, phases, exercises, sessions, onBack, o
   </>;
 }
 
-function EncountersView({ encounters, athletes, initialAthleteId, embedded = false, onNew, onAthlete, onSave }: { encounters: Encounter[]; athletes: Athlete[]; initialAthleteId?: string; embedded?: boolean; onNew: () => void; onAthlete: (id: string) => void; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
+function EncountersView({ encounters, athletes, initialAthleteId, embedded = false, onNew, onAthlete: _onAthlete, onSave }: { encounters: Encounter[]; athletes: Athlete[]; initialAthleteId?: string; embedded?: boolean; onNew: () => void; onAthlete: (id: string) => void; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
   const [athleteId, setAthleteId] = useState(initialAthleteId ?? encounters[0]?.athleteId ?? athletes[0]?.id ?? "");
-  const [athleteQuery, setAthleteQuery] = useState("");
-  const [directoryOpen, setDirectoryOpen] = useState(false);
   const [encounterType, setEncounterType] = useState("All encounter types");
   const [clinicCity, setClinicCity] = useState("All cities");
   const [clinicType, setClinicType] = useState("All clinics");
@@ -517,7 +514,6 @@ function EncountersView({ encounters, athletes, initialAthleteId, embedded = fal
       && (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
   });
   const selectedEncounter = filteredEncounters.find((encounter) => encounter.id === selectedEncounterId) ?? filteredEncounters[0] ?? null;
-  const rosterAthletes = athletes.filter((athlete) => `${fullName(athlete)} ${athlete.mrn} ${athlete.sport}`.toLowerCase().includes(athleteQuery.toLowerCase()));
   const encounterTypes = Array.from(new Set(athleteEncounters.map((encounter) => encounter.encounterType))).sort();
   const clinicTypes = Array.from(new Set(encounters.map((encounter) => encounter.clinicType))).sort();
   const clearFilters = () => { setEncounterType("All encounter types"); setClinicCity("All cities"); setClinicType("All clinics"); setDateFrom(""); setDateTo(""); };
@@ -526,15 +522,10 @@ function EncountersView({ encounters, athletes, initialAthleteId, embedded = fal
     {!embedded && <PageHeading eyebrow="Unified longitudinal record" title="Medical File" text="Select any athlete, then review every specialty visit in one chronological record." action={<button className="button primary" onClick={onNew}>＋ New encounter</button>} />}
     <section className="medical-file-shell">
       <div className="medical-file-commandbar">
-        {selectedAthlete && <div className="selected-athlete-brief"><Avatar name={fullName(selectedAthlete)} color={selectedAthlete.accent} /><span><small>Open medical file</small><strong>{fullName(selectedAthlete)}</strong><p>{selectedAthlete.mrn} · {selectedAthlete.sport} · {selectedAthlete.discipline}</p></span><Status value={selectedAthlete.status} /><button className="text-button" onClick={() => onAthlete(selectedAthlete.id)}>Athlete 360° →</button></div>}
-        <div className="medical-file-actions"><button className="button secondary small directory-toggle" aria-expanded={directoryOpen} onClick={() => setDirectoryOpen((open) => !open)}>{directoryOpen ? "Hide athlete directory" : "Show athlete directory"}</button>{embedded && <button className="button primary small" onClick={onNew}>＋ New encounter</button>}</div>
+        {selectedAthlete && <div className="selected-athlete-brief"><Avatar name={fullName(selectedAthlete)} color={selectedAthlete.accent} /><span><small>Open medical file</small><strong>{fullName(selectedAthlete)}</strong><p>{selectedAthlete.mrn} · {selectedAthlete.sport} · {selectedAthlete.discipline}</p></span><Status value={selectedAthlete.status} /></div>}
+        <div className="medical-file-actions">{embedded && <button className="button primary small" onClick={onNew}>＋ New encounter</button>}</div>
       </div>
-      <div className={`medical-file-body ${directoryOpen ? "directory-open" : ""}`}>
-        {directoryOpen && <aside className="athlete-roster">
-          <div className="roster-heading"><span className="section-kicker">Athlete directory</span><h3>All athletes</h3><small>{athletes.length} registered</small></div>
-          <label className="roster-search"><span>⌕</span><input aria-label="Search athlete roster" value={athleteQuery} onChange={(event) => setAthleteQuery(event.target.value)} placeholder="Name, MRN or sport" /></label>
-          <div className="athlete-roster-list">{rosterAthletes.map((athlete) => <button key={athlete.id} className={athlete.id === athleteId ? "active" : ""} onClick={() => { setAthleteId(athlete.id); setSelectedEncounterId(null); }}><Avatar name={fullName(athlete)} color={athlete.accent} size="sm" /><span><strong>{fullName(athlete)}</strong><small>{athlete.mrn} · {athlete.sport}</small></span><i className={`availability-dot ${athlete.status === "Available" ? "available" : "attention"}`} /></button>)}{!rosterAthletes.length && <div className="roster-empty">No athletes match this search.</div>}</div>
-        </aside>}
+      <div className="medical-file-body">
         <div className="medical-record-stage">
           <div className="medical-file-tabs"><button className="active">Medical file</button></div>
           <div className="medical-file-filters"><label><span>Encounter type</span><select value={encounterType} onChange={(event) => setEncounterType(event.target.value)}><option>All encounter types</option>{encounterTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label><span>Clinic city</span><select value={clinicCity} onChange={(event) => setClinicCity(event.target.value)}><option>All cities</option><option>Riyadh</option><option>Dammam</option><option>Dhahran</option></select></label><label><span>Clinic type</span><select value={clinicType} onChange={(event) => setClinicType(event.target.value)}><option>All clinics</option>{clinicTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label className="date-filter"><span>From</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label><label className="date-filter"><span>To</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label><button className="filter-clear" onClick={clearFilters}>Clear</button></div>
@@ -626,13 +617,17 @@ function RehabilitationAdvanceForm({ plan, onSubmit, busy }: { plan: Rehabilitat
 }
 
 function EditForm({ athlete, onSubmit, busy }: { athlete: Athlete; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
-  return <form onSubmit={onSubmit}><ModalHeading kicker={athlete.mrn} title="Update athlete profile" text="Keep clinical status and safety details current for the whole care team." /><div className="form-grid one-column"><label>Clinical status<select name="status" defaultValue={athlete.status}>{statusOptions.map((status) => <option key={status}>{status}</option>)}</select></label><label>Medical alerts<textarea name="medicalAlerts" rows={3} defaultValue={athlete.medicalAlerts} /></label><label>Emergency contact<input name="emergencyContact" defaultValue={athlete.emergencyContact} /></label><label>Next follow-up<input name="followUpDate" type="date" defaultValue={athlete.followUpDate ?? ""} /></label></div><ModalActions busy={busy} primary="Save changes" /></form>;
+  return <form onSubmit={onSubmit}><ModalHeading kicker={athlete.mrn} title="Update athlete profile" text="Keep the current clinical status and contact information accurate for the care team." /><div className="form-grid one-column"><label>Clinical status<select name="status" defaultValue={athlete.status}>{statusOptions.map((status) => <option key={status}>{status}</option>)}</select></label><label>Emergency contact<input name="emergencyContact" defaultValue={athlete.emergencyContact} /></label><input type="hidden" name="medicalAlerts" value={athlete.medicalAlerts} /><input type="hidden" name="followUpDate" value={athlete.followUpDate ?? ""} /></div><ModalActions busy={busy} primary="Save changes" /></form>;
 }
 
 function ClinicalSafetyForm({ athlete, category, onSubmit, busy }: { athlete: Athlete; category: "allergies" | "chronicConditions" | "prohibitedMedications"; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
   const detail = safetyDetails[category];
-  const current = athlete[category] === "None recorded" ? "" : athlete[category];
-  return <form onSubmit={onSubmit}><ModalHeading kicker={athlete.mrn} title={detail.title} text="Add the current clinical information, or explicitly confirm that there is none to record." /><div className="form-grid one-column"><label>{detail.title}<textarea name="value" rows={4} defaultValue={current} placeholder={`Enter ${detail.title.toLowerCase()} details`} /></label><label className="check-field"><input type="checkbox" name="noneRecorded" defaultChecked={!current} /> <span>No {detail.title.toLowerCase()} to record</span></label></div><ModalActions busy={busy} primary="Save clinical safety" /></form>;
+  const initialItems = athlete[category] === "None recorded" ? [] : athlete[category].split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+  const [items, setItems] = useState(initialItems);
+  const [draft, setDraft] = useState("");
+  const [noneConfirmed, setNoneConfirmed] = useState(!initialItems.length);
+  const addItem = () => { const value = draft.trim(); if (!value || items.some((item) => item.toLowerCase() === value.toLowerCase())) return; setItems([...items, value]); setDraft(""); setNoneConfirmed(false); };
+  return <form onSubmit={onSubmit}><ModalHeading kicker={athlete.mrn} title={detail.title} text="Add each item separately. Saved items remain visible and can be removed individually." /><div className="form-grid one-column"><label>{detail.title}<div className="safety-entry"><input value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addItem(); } }} placeholder={`Add ${detail.title.toLowerCase()} and press Enter`} autoFocus /><button type="button" className="button secondary small" onClick={addItem}>Add</button></div></label>{items.length > 0 && <div className="safety-chips" aria-label={`Recorded ${detail.title.toLowerCase()}`}>{items.map((item) => <span key={item}>{item}<button type="button" aria-label={`Remove ${item}`} onClick={() => setItems(items.filter((current) => current !== item))}>×</button></span>)}</div>}<label className="none-option"><input type="checkbox" checked={noneConfirmed} onChange={(event) => setNoneConfirmed(event.target.checked)} /><span><strong>No {detail.title.toLowerCase()} to record</strong><small>This only confirms the empty state; it never removes saved items.</small></span></label><input type="hidden" name="value" value={items.join("\n")} /></div><ModalActions busy={busy} primary="Save clinical safety" /></form>;
 }
 
 function CareForm({ athlete, practitioners, onSubmit, busy }: { athlete: Athlete; practitioners: Practitioner[]; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
