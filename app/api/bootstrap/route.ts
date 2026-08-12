@@ -16,6 +16,8 @@ export async function GET() {
         SELECT a.id, a.mrn, a.first_name AS firstName, a.last_name AS lastName,
           a.date_of_birth AS dateOfBirth, a.sex, a.nationality, a.discipline,
           a.dominant_side AS dominantSide, a.status, a.medical_alerts AS medicalAlerts,
+          a.allergies, a.chronic_conditions AS chronicConditions,
+          a.prohibited_medications AS prohibitedMedications,
           a.emergency_contact AS emergencyContact, a.follow_up_date AS followUpDate,
           a.accent, a.updated_at AS updatedAt, s.name AS sport,
           COALESCE(t.name, 'Unassigned') AS team,

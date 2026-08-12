@@ -6,7 +6,7 @@ import type { PortalUser } from "./access-model";
 type Athlete = {
   id: string; mrn: string; firstName: string; lastName: string; dateOfBirth: string;
   sex: string; nationality: string; sport: string; discipline: string; dominantSide: string;
-  status: string; medicalAlerts: string; emergencyContact: string; followUpDate: string | null;
+  status: string; medicalAlerts: string; allergies: string; chronicConditions: string; prohibitedMedications: string; emergencyContact: string; followUpDate: string | null;
   accent: string; team: string; leadPractitioner: string; lastEncounter: string | null;
 };
 type Encounter = {
@@ -47,7 +47,7 @@ type Bootstrap = {
 };
 
 const statusOptions = ["Available", "Modified Training", "Under Treatment", "Return-to-Sport Review", "Temporarily Unavailable"];
-const navItems = ["Overview", "Athletes", "Injuries", "Rehabilitation", "Encounters", "Care Team"] as const;
+const navItems = ["Overview", "Athletes", "Injuries", "Rehabilitation", "Care Team"] as const;
 const futureItems = ["Nutrition", "Psychology", "Performance"];
 const navGlyphs: Record<string, string> = {
   Overview: "⌂", Athletes: "◎", Encounters: "≡", "Care Team": "◇",
@@ -104,11 +104,12 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedInjuryId, setSelectedInjuryId] = useState<string | null>(null);
   const [selectedRehabilitationId, setSelectedRehabilitationId] = useState<string | null>(null);
-  const [profileTab, setProfileTab] = useState("Summary");
+  const [profileTab, setProfileTab] = useState("Encounters");
   const [query, setQuery] = useState("");
   const [sportFilter, setSportFilter] = useState("All sports");
   const [statusFilter, setStatusFilter] = useState("All statuses");
-  const [modal, setModal] = useState<null | "athlete" | "encounter" | "edit" | "care" | "injury" | "injuryStage" | "linkEncounter" | "rehabilitation" | "rehabSession" | "rehabAdvance">(null);
+  const [modal, setModal] = useState<null | "athlete" | "encounter" | "edit" | "care" | "injury" | "injuryStage" | "linkEncounter" | "rehabilitation" | "rehabSession" | "rehabAdvance" | "clinicalSafety">(null);
+  const [safetyCategory, setSafetyCategory] = useState<"allergies" | "chronicConditions" | "prohibitedMedications">("allergies");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
 
@@ -147,7 +148,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
 
   function showProfile(id: string) {
     setSelectedId(id);
-    setProfileTab("Summary");
+    setProfileTab("Encounters");
     setView("Profile");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -208,6 +209,19 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     event.preventDefault();
     if (!selected) return;
     await apiAction(`/api/athletes/${selected.id}`, { method: "PATCH", body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget).entries())) }, "Athlete profile updated");
+  }
+
+  async function submitClinicalSafety(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const form = new FormData(event.currentTarget);
+    const noKnown = form.get("noneRecorded") === "on";
+    await apiAction(`/api/athletes/${selected.id}`, { method: "PATCH", body: JSON.stringify({ safetyCategory, value: noKnown ? "None recorded" : form.get("value") }) }, "Clinical safety record updated");
+  }
+
+  function editClinicalSafety(category: "allergies" | "chronicConditions" | "prohibitedMedications") {
+    setSafetyCategory(category);
+    setModal("clinicalSafety");
   }
 
   async function submitCare(event: FormEvent<HTMLFormElement>) {
@@ -311,9 +325,8 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
           {view === "InjuryDetail" && selectedInjury && <InjuryDetailView injury={selectedInjury} rehabilitationPlan={data.rehabilitationPlans.find((plan) => plan.injuryId === selectedInjury.id)} history={data.injuryHistory.filter((item) => item.injuryId === selectedInjury.id)} encounters={data.encounters.filter((item) => item.injuryId === selectedInjury.id)} onBack={() => navigate("Injuries")} onAthlete={showProfile} onStage={() => setModal("injuryStage")} onLink={() => setModal("linkEncounter")} onRehabilitation={showRehabilitation} onCreateRehabilitation={() => setModal("rehabilitation")} />}
           {view === "Rehabilitation" && <RehabilitationView plans={data.rehabilitationPlans} stats={data.stats} onNew={() => setModal("rehabilitation")} onOpen={showRehabilitation} />}
           {view === "RehabilitationDetail" && selectedRehabilitation && <RehabilitationDetailView plan={selectedRehabilitation} phases={data.rehabilitationPhases.filter((phase) => phase.planId === selectedRehabilitation.id)} exercises={data.rehabilitationExercises} sessions={data.rehabilitationSessions.filter((session) => session.planId === selectedRehabilitation.id)} onBack={() => navigate("Rehabilitation")} onInjury={showInjury} onAthlete={showProfile} onSession={() => setModal("rehabSession")} onAdvance={() => setModal("rehabAdvance")} />}
-          {view === "Encounters" && <EncountersView encounters={data.encounters} athletes={data.athletes} onNew={() => setModal("encounter")} onAthlete={showProfile} onSave={saveEncounterFields} />}
           {view === "Care Team" && <CareTeamView practitioners={data.practitioners} athletes={data.athletes} />}
-          {view === "Profile" && selected && <ProfileView athlete={selected} athletes={data.athletes} encounters={data.encounters} injuries={data.injuries.filter((injury) => injury.athleteId === selected.id)} practitioners={data.practitioners} tab={profileTab} setTab={setProfileTab} onBack={() => navigate("Athletes")} onAthlete={showProfile} onEncounter={() => setModal("encounter")} onNewInjury={() => setModal("injury")} onInjury={showInjury} onEdit={() => setModal("edit")} onCare={() => setModal("care")} onSave={saveEncounterFields} />}
+          {view === "Profile" && selected && <ProfileView athlete={selected} athletes={data.athletes} encounters={data.encounters} injuries={data.injuries.filter((injury) => injury.athleteId === selected.id)} practitioners={data.practitioners} tab={profileTab} setTab={setProfileTab} onBack={() => navigate("Athletes")} onAthlete={showProfile} onEncounter={() => setModal("encounter")} onNewInjury={() => setModal("injury")} onInjury={showInjury} onEdit={() => setModal("edit")} onCare={() => setModal("care")} onSafety={editClinicalSafety} onSave={saveEncounterFields} />}
         </main>
       </div>
 
@@ -332,6 +345,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
           {modal === "rehabilitation" && <RehabilitationForm injuries={data.injuries} practitioners={data.practitioners} selectedInjuryId={selectedInjury?.id} onSubmit={submitRehabilitation} busy={busy} />}
           {modal === "rehabSession" && selectedRehabilitation && <RehabilitationSessionForm plan={selectedRehabilitation} onSubmit={submitRehabSession} busy={busy} />}
           {modal === "rehabAdvance" && selectedRehabilitation && <RehabilitationAdvanceForm plan={selectedRehabilitation} onSubmit={submitRehabAdvance} busy={busy} />}
+          {modal === "clinicalSafety" && selected && <ClinicalSafetyForm athlete={selected} category={safetyCategory} onSubmit={submitClinicalSafety} busy={busy} />}
         </section>
       </div>}
       {toast && <div className="toast" role="status"><span>✓</span>{toast}</div>}
@@ -371,19 +385,28 @@ function AthletesView({ athletes, all, query, setQuery, sportFilter, setSportFil
   </>;
 }
 
-function ProfileView({ athlete, athletes, encounters, injuries, practitioners, tab, setTab, onBack, onAthlete, onEncounter, onNewInjury, onInjury, onEdit, onCare, onSave }: { athlete: Athlete; athletes: Athlete[]; encounters: Encounter[]; injuries: Injury[]; practitioners: Practitioner[]; tab: string; setTab: (v: string) => void; onBack: () => void; onAthlete: (id: string) => void; onEncounter: () => void; onNewInjury: () => void; onInjury: (id: string) => void; onEdit: () => void; onCare: () => void; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
+function ProfileView({ athlete, athletes, encounters, injuries, practitioners, tab, setTab, onBack, onAthlete, onEncounter, onNewInjury, onInjury, onEdit, onCare, onSafety, onSave }: { athlete: Athlete; athletes: Athlete[]; encounters: Encounter[]; injuries: Injury[]; practitioners: Practitioner[]; tab: string; setTab: (v: string) => void; onBack: () => void; onAthlete: (id: string) => void; onEncounter: () => void; onNewInjury: () => void; onInjury: (id: string) => void; onEdit: () => void; onCare: () => void; onSafety: (category: "allergies" | "chronicConditions" | "prohibitedMedications") => void; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
   const athleteEncounters = encounters.filter((encounter) => encounter.athleteId === athlete.id);
-  const tabs = ["Summary", `Injuries ${injuries.length}`, `Encounters ${athleteEncounters.length}`, "Care Team", "Activity Log"];
+  const tabs = [`Encounters ${athleteEncounters.length}`, `Injuries ${injuries.length}`, "Care Team", "Activity Log"];
   return <>
     <button className="back-link" onClick={onBack}>← Athlete registry</button>
     <section className="profile-hero"><span className="profile-watermark" aria-hidden="true">360</span><div className="profile-identity"><Avatar name={fullName(athlete)} color={athlete.accent} size="lg" /><div><span className="profile-kicker">Athlete 360° record</span><div className="profile-title-row"><h1>{fullName(athlete)}</h1><Status value={athlete.status} /></div><p>{athlete.mrn} <span>·</span> {athlete.sport} <span>·</span> {athlete.discipline} <span>·</span> {athlete.team}</p><div className="identity-meta"><span><small>Age</small>{age(athlete.dateOfBirth)} years</span><span><small>Dominant side</small>{athlete.dominantSide}</span><span><small>Lead practitioner</small>{athlete.leadPractitioner}</span></div></div></div><div className="profile-actions"><button className="button secondary" onClick={onEdit}>Edit profile</button><button className="button primary" onClick={onEncounter}>＋ New encounter</button></div></section>
     <div className="tabs" role="tablist">{tabs.map((item) => { const key = item.split(" ").slice(0, item.startsWith("Activity") ? 2 : 1).join(" "); return <button key={item} role="tab" aria-selected={tab === key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{item}</button>; })}</div>
-    {tab === "Summary" && <section className="profile-grid"><div className="profile-main"><div className="panel"><div className="panel-head"><div><span className="section-kicker">At a glance</span><h3>Clinical summary</h3></div><span className="updated">Updated {shortDate(athlete.lastEncounter)}</span></div><div className="summary-grid"><SummaryItem label="Current status"><Status value={athlete.status} /></SummaryItem><SummaryItem label="Next follow-up"><strong>{shortDate(athlete.followUpDate)}</strong></SummaryItem><SummaryItem label="Medical alerts"><strong className={athlete.medicalAlerts === "None recorded" ? "muted" : "alert-text"}>{athlete.medicalAlerts}</strong></SummaryItem><SummaryItem label="Emergency contact"><strong>{athlete.emergencyContact}</strong></SummaryItem></div></div><EncounterTimeline encounters={athleteEncounters} /></div><aside className="profile-side"><div className="panel compact"><div className="panel-head"><div><span className="section-kicker">Shared care</span><h3>Care team</h3></div><button className="circle-add" onClick={onCare} aria-label="Add care team member">＋</button></div><div className="care-list"><CarePerson name={athlete.leadPractitioner} specialty="Lead practitioner" lead />{practitioners.filter((person) => person.name !== athlete.leadPractitioner).slice(0, 2).map((person) => <CarePerson key={person.id} name={person.name} specialty={person.specialty} />)}</div><button className="panel-action" onClick={onCare}>Manage care team →</button></div><div className="panel compact"><span className="section-kicker">Record integrity</span><h3>Clinical controls</h3><ul className="integrity-list"><li><span>✓</span> Changes save automatically</li><li><span>✓</span> Every edit remains traceable</li><li><span>✓</span> Restricted notes are protected</li></ul></div></aside></section>}
-    {tab.startsWith("Encounters") && <EncountersView encounters={encounters} athletes={athletes} initialAthleteId={athlete.id} embedded onNew={onEncounter} onAthlete={onAthlete} onSave={onSave} />}
+    {tab.startsWith("Encounters") && <><ClinicalSafetyPanel athlete={athlete} onEdit={onSafety} /><EncountersView encounters={encounters} athletes={athletes} initialAthleteId={athlete.id} embedded onNew={onEncounter} onAthlete={onAthlete} onSave={onSave} /></>}
     {tab.startsWith("Injuries") && <div className="panel tab-panel"><div className="panel-head"><div><span className="section-kicker">Injury pathway</span><h3>Injury episodes</h3></div><button className="button primary small" onClick={onNewInjury}>＋ Open episode</button></div>{injuries.length ? <div className="athlete-injury-list">{injuries.map((injury) => <button key={injury.id} onClick={() => onInjury(injury.id)}><div><strong>{injury.title}</strong><small>{injury.bodyArea} · Onset {shortDate(injury.onsetDate)}</small></div><Status value={injury.stage} /><span>›</span></button>)}</div> : <div className="empty-state compact-empty"><h3>No injury episodes</h3><p>Open an episode to coordinate assessment, treatment, and return to sport.</p></div>}</div>}
     {tab === "Care Team" && <div className="panel tab-panel"><div className="panel-head"><div><span className="section-kicker">Multidisciplinary care</span><h3>Assigned practitioners</h3></div><button className="button primary small" onClick={onCare}>＋ Assign practitioner</button></div><div className="team-cards"><CarePerson name={athlete.leadPractitioner} specialty="Lead practitioner" lead />{practitioners.filter((person) => person.name !== athlete.leadPractitioner).map((person) => <CarePerson key={person.id} name={person.name} specialty={person.specialty} />)}</div></div>}
     {tab === "Activity Log" && <div className="panel tab-panel"><div className="audit-message"><span>◎</span><div><h3>Traceable by design</h3><p>Profile edits, assignments, and automatically saved clinical changes remain in the SOPCare audit history.</p></div></div></div>}
   </>;
+}
+
+const safetyDetails = {
+  allergies: { title: "Allergies", none: "No known allergies", icon: "!" },
+  chronicConditions: { title: "Chronic conditions", none: "No chronic conditions recorded", icon: "+" },
+  prohibitedMedications: { title: "Prohibited medication", none: "No prohibited medication recorded", icon: "×" },
+} as const;
+
+function ClinicalSafetyPanel({ athlete, onEdit }: { athlete: Athlete; onEdit: (category: "allergies" | "chronicConditions" | "prohibitedMedications") => void }) {
+  return <section className="clinical-safety-panel" aria-label="Clinical safety"><div className="clinical-safety-head"><div><span className="section-kicker">Clinical safety</span><h3>Important athlete information</h3></div><span>Review before care decisions</span></div><div className="clinical-safety-grid">{(Object.keys(safetyDetails) as Array<keyof typeof safetyDetails>).map((category) => { const detail = safetyDetails[category]; const value = athlete[category]; const none = !value || value === "None recorded"; return <article key={category} className={`safety-card ${none ? "is-clear" : "has-record"}`}><span className="safety-icon">{detail.icon}</span><div><small>{detail.title}</small><strong>{none ? detail.none : value}</strong><p>{none ? "Confirm this status or add a record." : "Recorded in the athlete clinical file."}</p></div><button className="button secondary small" onClick={() => onEdit(category)}>{none ? "Confirm / add" : "Edit"}</button></article>; })}</div></section>;
 }
 
 function SummaryItem({ label, children }: { label: string; children: React.ReactNode }) { return <div className="summary-item"><small>{label}</small>{children}</div>; }
@@ -604,6 +627,12 @@ function RehabilitationAdvanceForm({ plan, onSubmit, busy }: { plan: Rehabilitat
 
 function EditForm({ athlete, onSubmit, busy }: { athlete: Athlete; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
   return <form onSubmit={onSubmit}><ModalHeading kicker={athlete.mrn} title="Update athlete profile" text="Keep clinical status and safety details current for the whole care team." /><div className="form-grid one-column"><label>Clinical status<select name="status" defaultValue={athlete.status}>{statusOptions.map((status) => <option key={status}>{status}</option>)}</select></label><label>Medical alerts<textarea name="medicalAlerts" rows={3} defaultValue={athlete.medicalAlerts} /></label><label>Emergency contact<input name="emergencyContact" defaultValue={athlete.emergencyContact} /></label><label>Next follow-up<input name="followUpDate" type="date" defaultValue={athlete.followUpDate ?? ""} /></label></div><ModalActions busy={busy} primary="Save changes" /></form>;
+}
+
+function ClinicalSafetyForm({ athlete, category, onSubmit, busy }: { athlete: Athlete; category: "allergies" | "chronicConditions" | "prohibitedMedications"; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
+  const detail = safetyDetails[category];
+  const current = athlete[category] === "None recorded" ? "" : athlete[category];
+  return <form onSubmit={onSubmit}><ModalHeading kicker={athlete.mrn} title={detail.title} text="Add the current clinical information, or explicitly confirm that there is none to record." /><div className="form-grid one-column"><label>{detail.title}<textarea name="value" rows={4} defaultValue={current} placeholder={`Enter ${detail.title.toLowerCase()} details`} /></label><label className="check-field"><input type="checkbox" name="noneRecorded" defaultChecked={!current} /> <span>No {detail.title.toLowerCase()} to record</span></label></div><ModalActions busy={busy} primary="Save clinical safety" /></form>;
 }
 
 function CareForm({ athlete, practitioners, onSubmit, busy }: { athlete: Athlete; practitioners: Practitioner[]; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {

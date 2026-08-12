@@ -8,6 +8,13 @@
       "when": 1786440301735,
       "tag": "0000_omniscient_bushwacker",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786440301736,
+      "tag": "0001_athlete_clinical_safety",
+      "breakpoints": true
     }
   ]
 }

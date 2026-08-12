@@ -27,8 +27,8 @@ export async function POST(request: Request) {
     const accents = ["#006C46", "#397F91", "#BB7B43", "#6A5E8C", "#A45D65"];
 
     await db.batch([
-      db.prepare(`INSERT INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, emergency_contact, accent)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Available', 'None recorded', 'Not provided', ?)`)
+      db.prepare(`INSERT INTO athletes (id, mrn, first_name, last_name, date_of_birth, sex, sport_id, discipline, dominant_side, status, medical_alerts, allergies, chronic_conditions, prohibited_medications, emergency_contact, accent)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Available', 'None recorded', 'None recorded', 'None recorded', 'None recorded', 'Not provided', ?)`)
         .bind(id, mrn, firstName, lastName, dateOfBirth, sex, sportId, discipline, dominantSide, accents[(row?.count ?? 0) % accents.length]),
       db.prepare("INSERT INTO athlete_team_memberships (athlete_id, team_id, is_primary) VALUES (?, ?, 1)").bind(id, teamId),
       db.prepare("INSERT OR IGNORE INTO athlete_care_team (athlete_id, practitioner_id, is_lead) VALUES (?, 'pr-lina', 1)").bind(id),
