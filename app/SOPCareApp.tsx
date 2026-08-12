@@ -553,6 +553,20 @@ function EncountersView({ encounters, athletes, initialAthleteId, embedded = fal
 type EditableEncounterField = "subjective" | "objective" | "assessment" | "plan" | "diagnosis";
 
 function VisitReviewEditor({ encounter, onSave }: { encounter: Encounter; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
+  const [amending, setAmending] = useState(false);
+  const [reason, setReason] = useState("");
+  const [draft, setDraft] = useState(encounter.plan);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [amendments, setAmendments] = useState<Array<{ id: string; reason: string; createdAt: string; practitioner: string }>>([]);
+  const loadAmendments = async () => { const response = await fetch(`/api/encounters/${encounter.id}/amendments`); if (response.ok) { const body = await response.json() as { amendments: Array<{ id: string; reason: string; createdAt: string; practitioner: string }> }; setAmendments(body.amendments); } };
+  useEffect(() => { setAmending(false); setReason(""); setDraft(encounter.plan); setMessage(""); void loadAmendments(); }, [encounter.id]);
+  const saveAmendment = async () => { if (!reason.trim()) { setMessage("Add the reason for this amendment before saving."); return; } setSaving(true); setMessage(""); const saved = await onSave(encounter.id, { plan: draft, amendmentReason: reason.trim() }); setSaving(false); if (saved) { setAmending(false); setMessage("Amendment saved."); await loadAmendments(); } else setMessage("The amendment could not be saved. Please try again."); };
+  const displayHistory = encounter.plan || [encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).map((item) => `<p>${item}</p>`).join("") || "<p>No clinical history recorded.</p>";
+  return <><section className="encounter-history"><div className="encounter-history-content" dangerouslySetInnerHTML={{ __html: displayHistory }} /></section>{encounter.canEdit === 1 && <>{amending && <section className="amendment-editor"><label>Reason for amendment*<input autoFocus value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Why does this record need to change?" /></label><label>Clinical history<div className="amendment-content" contentEditable suppressContentEditableWarning onInput={(event) => setDraft(event.currentTarget.innerHTML)} dangerouslySetInnerHTML={{ __html: draft }} /></label><div><button className="button secondary small" onClick={() => setAmending(false)}>Cancel</button><button className="button primary small" disabled={saving} onClick={() => void saveAmendment()}>{saving ? "Saving…" : "Save amendment"}</button></div></section>}<div className="visit-action-footer"><button className="button secondary small" onClick={() => setAmending(true)}>✎ Amend visit</button><button className="button secondary small pdf-button" onClick={() => window.print()}>↓ Download PDF</button></div></>}{message && <div className="amendment-message">{message}</div>}{amendments.length > 0 && <section className="amendment-log"><h4>Amendment record</h4>{amendments.map((item) => <div key={item.id}><strong>{item.practitioner}</strong><span>{new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(item.createdAt))}</span><p>{item.reason}</p></div>)}</section>}</>;
+}
+
+function LegacyVisitReviewEditor({ encounter, onSave }: { encounter: Encounter; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
   const [values, setValues] = useState<Record<EditableEncounterField, string>>({ subjective: encounter.subjective, objective: encounter.objective, assessment: encounter.assessment, plan: encounter.plan, diagnosis: encounter.diagnosis });
   const [editing, setEditing] = useState<EditableEncounterField | null>(null);
   const [saveState, setSaveState] = useState("");
