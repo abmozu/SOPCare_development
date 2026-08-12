@@ -1,6 +1,6 @@
 Exit code: 0
 Wall time: 0.6 seconds
-Total output lines: 440
+Total output lines: 490
 Output:
 @import "tailwindcss";
 
@@ -160,17 +160,7 @@ tbody tr { cursor: pointer; transition: .18s ease; } tbody tr:hover { background
 .profile-grid { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(270px,.65fr); gap: 17px; }.profile-main { display: grid; gap: 17px; align-content: start; }.profile-side { display: grid; gap: 17px; align-content: start; }
 .updated { color: #89948f; font-size: 8px; }
 .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }.summary-item { min-height: 86px; padding: 19px 21px; border-right: 1px solid #edf0ee; border-bottom: 1px solid #edf0ee; }.summary-item:nth-child(2n) { border-right: 0; }.summary-item:nth-last-child(-n+2) { border-bottom: 0; }.summary-item > small { display: block; margin-bottom: 9px; color: #7c8983; font-size: 8px; text-transform: uppercase; letter-spacing: .05em; }.summary-item > strong { font-size: 10px; }.summary-item .muted { color: #76817c; font-weight: 500; }.alert-text { color: #a24d52; }
-.compact { overflow: hidden; }.circle-add { width: 29px; height: 29px; border: 1px solid #d9e0dc; border-radius: 50%; background: #fff; color: var(--green); cursor: pointer; }.care-list { padding: 7px 19px; }.care-person { min-height: 59px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #edf0ee; }.care-person:last-child { border-bottom: 0; }.care-person strong, .care-person small { display: block; }.care-person strong { font-size: 10px; }.care-person small { margin-top: 3px; color: #7b8782; font-size: 8px; }.care-person i { margin-left: …19045 tokens truncated… 14px; }.visit-location-meta { grid-template-columns: repeat(2,1fr); margin-top: 0; }.visit-location-meta > span { min-height: 61px; font-size: 12px; }.visit-location-meta small { font-size: 9px; }.chief-complaint span { font-size: 9px; }.chief-complaint p { font-size: 12px; }
-.editable-soap > section { min-height: 105px; grid-template-columns: 38px minmax(0,1fr) auto; align-items: start; padding: 15px; }.editable-soap > section > span { width: 38px; height: 38px; font-size: 12px; }.editable-soap h4 { font-size: 11px; }.editable-soap p { font-size: 12px; line-height: 1.65; }.editable-soap textarea { width: 100%; min-height: 100px; padding: 10px 11px; border: 1px solid #a9c9ba; border-radius: 9px; color: #273a32; background: #fff; font-size: 12px; line-height: 1.6; outline: none; resize: vertical; }.autosave-state { margin: 13px 18px 17px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: #658078; font-size: 10px; }.autosave-state span { color: #2fa576; font-size: 8px; }.autosave-state.error, .autosave-state.error span { color: #b34f55; }.pdf-button { white-space: nowrap; }
-.visit-completion-bar { margin: 16px 18px 0; padding: 13px 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid #dce7e1; border-radius: 12px; background: #f5f9f7; }.visit-completion-bar > div { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; }.visit-completion-bar strong { color: var(--forest-deep); font-size: 11px; }.visit-completion-bar small { grid-column: 2; color: #718078; font-size: 8px; }.completion-dot { width: 9px; height: 9px; grid-row: span 2; border-radius: 50%; background: #2fa576; box-shadow: 0 0 0 4px #e3f2eb; }.completion-dot.amending { background: var(--gold); box-shadow: 0 0 0 4px #f6edda; }.amendment-request { margin: 10px 18px 0; padding: 14px; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; border: 1px solid #e6d7b7; border-radius: 11px; background: #fffaf0; }.amendment-request label { display: grid; gap: 6px; color: #5d574b; font-size: 9px; font-weight: 750; }.amendment-request input { min-height: 39px; padding: 0 10px; border: 1px solid #d9c9a8; border-radius: 8px; background: #fff; outline: none; }.amendment-request > div { display: flex; gap: 7px; }.field-editor { display: grid; gap: 8px; }.field-save { justify-self: end; min-height: 31px; padding: 0 13px; border: 0; border-radius: 8px; color: #fff; background: var(--green); cursor: pointer; font-size: 9px; font-weight: 800; }.editable-diagnosis .field-editor { margin-top: 10px; }.editable-diagnosis .field-editor textarea { margin-top: 0; }.editable-diagnosis .field-save { color: var(--forest-deep); background: #e9d8ad; }.advanced-options { padding: 12px 14px; border: 1px solid #dfe6e2; border-radius: 10px; background: #f8faf8; }.advanced-options summary { color: var(--green); cursor: pointer; font-size: 10px; font-weight: 750; }.advanced-options > div { margin-top: 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }.finish-visit-note { margin-top: 18px; padding: 13px 14px; display: flex; align-items: center; gap: 10px; border-radius: 10px; background: #edf5f1; }.finish-visit-note > span { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--green); }.finish-visit-note p { margin: 0; }.finish-visit-note strong,.finish-visit-note small { display: block; }.finish-visit-note strong { color: var(--forest-deep); font-size: 10px; }.finish-visit-note small { margin-top: 3px; color: #718078; font-size: 8px; }
-
-/* Clinical record typography: readable at a glance and comfortable for sustained review. */
-body { font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif; text-rendering: optimizeLegibility; }
-.medical-file-filters label, .chronology-mark, .free-text-chip, .section-kicker { letter-spacing: .075em; }
-.visit-history-list > button { min-height: 156px; }
-.visit-date strong { font-size: 32px; font-variant-numeric: tabular-nums; }
-.visit-date small { color: #62736b; font-size: 11px; font-weight: 700; line-height: 1.45; }
-.visit-date time { font-size: 11px; letter-spacing: .01em; }
+.compact { overflow: hidden; }.circle-add { width: 29px; height: 29px; border: 1px solid #d9e0dc; border-radius: 50%; background: #fff; color: var(--green); cursor: pointer; }.care-list { padding: 7px 19px; }.care-person { min-height: 59px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #edf0ee; }.care-person:last-child { border-bottom: 0; }.care-person strong, .care-person small { display: block; }.care-person strong { font-size: 10px; }.care-person small { margin-top: 3px; color: #7b8782; font-size: 8px; }.care-person i { margin-left: …20095 tokens truncated…acing: .01em; }
 .visit-card-copy strong { font-size: 14px; font-weight: 800; letter-spacing: .01em; }
 .visit-card-copy small { font-size: 12px; font-weight: 750; }
 .visit-card-copy p { color: #4e6259; font-size: 12px; line-height: 1.6; }
@@ -189,6 +179,56 @@ body { font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif; text-render
 .encounter-author-strip p, .selected-visit-author p, .visit-context dd, .medical-empty p { font-size: 11px; line-height: 1.5; }
 .sports-soap-history h4 { font-size: 12px; }
 .sports-soap-history p { color: #42574d; font-size: 12px; line-height: 1.65; }
+
+/* Athlete records, injury episodes, and rehabilitation: the same clinical reading standard. */
+.registry-tools select, .table-search input, .result-count { font-size: 12px; }
+th { font-size: 10px; letter-spacing: .075em; }
+.athlete-cell strong, td > strong { font-size: 13px; font-weight: 750; }
+.athlete-cell small, .cell-sub { color: #596b63; font-size: 11px; line-height: 1.45; }
+.sport-roster-groups button strong, .all-athlete-cards strong { font-size: 14px; }
+.sport-roster-groups button small, .all-athlete-cards small { color: #52655c; font-size: 12px; }
+.all-athlete-cards i { color: #6d7a74; font-size: 11px; }
+.profile-kicker { font-size: 11px; }
+.profile-title-row h1 { font-size: 36px; }
+.profile-identity p { color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.55; }
+.identity-meta span { font-size: 13px; }
+.identity-meta small { color: rgba(255,255,255,.65); font-size: 10px; font-weight: 750; }
+.tabs button { font-size: 13px; font-weight: 700; }
+.summary-item > small { color: #63736c; font-size: 10px; font-weight: 800; }
+.summary-item > strong { font-size: 13px; line-height: 1.5; }
+.care-person strong { font-size: 13px; }
+.care-person small, .integrity-list li { color: #53645d; font-size: 11px; line-height: 1.5; }
+.encounter-date { font-size: 10px; }
+.encounter-top h4 { font-size: 14px; }
+.encounter-top p { color: #4c6057; font-size: 12px; line-height: 1.6; }
+.encounter-foot { font-size: 11px; }
+.note-preview p { font-size: 12px; line-height: 1.65; }
+.injury-metrics small, .rehab-overview-metrics small { color: #5e7068; font-size: 10px; }
+.injury-metrics p, .rehab-overview-metrics p { color: #61726a; font-size: 11px; line-height: 1.5; }
+.stage-filters button { font-size: 11px; font-weight: 700; }
+.injury-athlete strong { font-size: 15px; }.injury-athlete small { font-size: 11px; }
+.injury-title p, .rehab-detail-identity p { color: rgba(255,255,255,.76); font-size: 12px; line-height: 1.55; }
+.snapshot-grid .summary-item > strong { font-size: 13px; }
+.next-action-card span { font-size: 10px; }
+.next-action-card h3 { font-size: 20px; line-height: 1.45; }
+.next-action-card p { color: rgba(255,255,255,.78); font-size: 12px; }
+.linked-encounters strong, .history-timeline strong, .athlete-injury-list strong { font-size: 13px; }
+.linked-encounters small, .history-timeline small, .athlete-injury-list small { color: #55665f; font-size: 11px; line-height: 1.5; }
+.history-timeline p { color: #42564d; font-size: 12px; line-height: 1.6; }
+.rehab-plan-top small, .rehab-plan-top p { color: rgba(255,255,255,.75); font-size: 11px; line-height: 1.55; }
+.rehab-plan-top h3 { font-size: 17px; line-height: 1.35; }
+.rehab-plan-phase > span, .rehab-plan-phase > small, .rehab-plan-foot small { color: #607169; font-size: 10px; font-weight: 750; }
+.rehab-plan-phase > strong, .rehab-plan-foot span, .rehab-plan-foot b { font-size: 12px; }
+.rehab-link-card div > span { font-size: 10px; }.rehab-link-card h3 { font-size: 16px; }.rehab-link-card p { color: rgba(255,255,255,.78); font-size: 12px; }.rehab-link-card b { font-size: 11px; }
+.rehab-empty-card strong { font-size: 14px; }.rehab-empty-card small, .rehab-empty-card b { font-size: 11px; }
+.rehab-phase-track small { font-size: 9px; font-weight: 750; }.rehab-phase-track strong { font-size: 11px; }
+.current-phase-card > div:first-child > span, .criteria-box small { font-size: 10px; }
+.current-phase-card div > p, .criteria-box p { color: rgba(255,255,255,.78); font-size: 12px !important; line-height: 1.6; }
+.criteria-box strong { font-size: 13px; }
+.rehab-session-list strong { font-size: 13px; }.rehab-session-list p { color: #455a50; font-size: 12px; line-height: 1.55; }.rehab-session-list small { color: #61716a; font-size: 10px; }
+.session-scores span { font-size: 11px; }.session-scores small { font-size: 9px; }
+.rehab-plan-summary dt { color: #617169; font-size: 10px; }.rehab-plan-summary dd { font-size: 12px; }.rehab-goal small, .rehab-precaution small { font-size: 10px; }.rehab-goal p, .rehab-precaution p { color: #40554b; font-size: 12px; line-height: 1.6; }
+.phase-criteria-list strong { font-size: 12px; }.phase-criteria-list small { color: #53655d; font-size: 11px; line-height: 1.55; }
 
 .report-print-template { display: none; }
 
