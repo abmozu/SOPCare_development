@@ -1,6 +1,20 @@
 import { ensureDatabase, writeAudit } from "../../../db/runtime";
 import { apiError, cleanText, requireApiActor } from "../_utils";
 
+function cleanRichHistory(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.slice(0, 12000)
+    .replace(/<\/?(script|style|iframe|object|embed)[^>]*>/gi, "")
+    .replace(/<\/?(?!b\b|strong\b|i\b|em\b|u\b|p\b|br\b|div\b|ul\b|ol\b|li\b|span\b|font\b)[^>]*>/gi, "")
+    .replace(/<(b|strong|i|em|u|p|br|div|ul|ol|li)\b[^>]*>/gi, "<$1>")
+    .replace(/<(span|font)\b[^>]*>/gi, (tag, element) => {
+      const color = tag.match(/\bcolor\s*=\s*["']?(#[0-9a-f]{3,8}|[a-z]+)["']?/i)
+        ?? tag.match(/\bstyle\s*=\s*["'][^"']*\bcolor\s*:\s*(#[0-9a-f]{3,8}|[a-z]+)[^"']*["']/i);
+      return color ? `<${element} color="${color[1]}">` : `<${element}>`;
+    })
+    .trim();
+}
+
 export async function POST(request: Request) {
   const actor = await requireApiActor("clinical.notes.create");
   if (actor instanceof Response) return actor;
@@ -43,7 +57,7 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
     await db.prepare(`INSERT INTO encounters (id, athlete_id, practitioner_id, encounter_date, encounter_type, clinic_city, clinic_type, clinic_location, reason, subjective, objective, assessment, plan, diagnosis, visibility, follow_up_date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, athleteId, practitioner.id, now, encounterType, clinicCity, clinicType, clinicLocation, reason, cleanText(payload.subjective), cleanText(payload.objective), cleanText(payload.assessment), cleanText(payload.plan), diagnosis, visibility, cleanText(payload.followUpDate, 10) || null)
+      .bind(id, athleteId, practitioner.id, now, encounterType, clinicCity, clinicType, clinicLocation, reason, "", "", "", cleanRichHistory(payload.plan), diagnosis, visibility, cleanText(payload.followUpDate, 10) || null)
       .run();
     await writeAudit(actor.id, "CREATED", "encounter", id, `${encounterType} created for ${athlete.firstName} ${athlete.lastName}`);
     return Response.json({ id }, { status: 201 });
