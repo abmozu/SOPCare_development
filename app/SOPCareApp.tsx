@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PortalUser } from "./access-model";
 
 type Athlete = {
@@ -117,6 +117,8 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   const [safetyCategory, setSafetyCategory] = useState<"allergies" | "chronicConditions" | "prohibitedMedications">("allergies");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
+  const scrollMemory = useRef(new Map<string, { windowY: number; consultation: number; timeline: number }>());
+  const navigationKey = [view, selectedId ?? "", selectedInjuryId ?? "", selectedRehabilitationId ?? "", profileTab, focusedEncounterId ?? ""].join(":");
 
   async function loadData() {
     try {
@@ -137,6 +139,26 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     const timer = setTimeout(() => setToast(""), 3200);
     return () => clearTimeout(timer);
   }, [toast]);
+  useLayoutEffect(() => {
+    const saved = scrollMemory.current.get(navigationKey);
+    const restore = () => {
+      window.scrollTo({ top: saved?.windowY ?? 0, behavior: "auto" });
+      const consultation = document.querySelector<HTMLElement>(".consultation-scroll");
+      const timeline = document.querySelector<HTMLElement>(".visit-history-list");
+      if (consultation) consultation.scrollTop = saved?.consultation ?? 0;
+      if (timeline) timeline.scrollTop = saved?.timeline ?? 0;
+    };
+    restore();
+    const frame = window.requestAnimationFrame(restore);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      scrollMemory.current.set(navigationKey, {
+        windowY: window.scrollY,
+        consultation: document.querySelector<HTMLElement>(".consultation-scroll")?.scrollTop ?? 0,
+        timeline: document.querySelector<HTMLElement>(".visit-history-list")?.scrollTop ?? 0,
+      });
+    };
+  }, [navigationKey]);
 
   const selected = data?.athletes.find((athlete) => athlete.id === selectedId) ?? null;
   const selectedInjury = data?.injuries.find((injury) => injury.id === selectedInjuryId) ?? null;
@@ -157,20 +179,17 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     setSelectedId(id);
     setProfileTab("Encounters");
     setView("Profile");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function showInjury(id: string) {
     setReturnToEncounterId(null);
     setSelectedInjuryId(id);
     setView("InjuryDetail");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function showRehabilitation(id: string) {
     setSelectedRehabilitationId(id);
     setView("RehabilitationDetail");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function navigate(next: string) {
@@ -218,7 +237,6 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     setReturnToEncounterId(encounterId);
     setSelectedInjuryId(injuryId);
     setView("InjuryDetail");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function returnToEncounter() {
@@ -229,7 +247,6 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     setProfileTab("Encounters");
     setReturnToEncounterId(null);
     setView("Profile");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openEncounterFromInjury(encounter: Encounter) {
@@ -238,7 +255,6 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     setSelectedId(encounter.athleteId);
     setProfileTab("Encounters");
     setView("Profile");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function submitInjuryAssociation(event: FormEvent<HTMLFormElement>) {
