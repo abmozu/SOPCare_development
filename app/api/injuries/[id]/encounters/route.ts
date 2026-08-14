@@ -24,8 +24,29 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       return Response.json({ error: "Only encounters for the same athlete can be linked." }, { status: 400 });
     }
 
-    await db.prepare("INSERT OR IGNORE INTO injury_encounters (injury_id, encounter_id) VALUES (?, ?)").bind(id, encounterId).run();
+    await db.prepare("DELETE FROM injury_encounters WHERE encounter_id = ?").bind(encounterId).run();
+    await db.prepare("INSERT INTO injury_encounters (injury_id, encounter_id) VALUES (?, ?)").bind(id, encounterId).run();
     await writeAudit(actor.id, "LINKED", "injury", id, `${encounter.encounterType} linked to ${injury.title}`);
+    return Response.json({ id });
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const actor = await requireApiActor("clinical.notes.edit");
+  if (actor instanceof Response) return actor;
+  const forbidden = requireClinicalWriteRole(actor);
+  if (forbidden) return forbidden;
+
+  try {
+    const { id } = await context.params;
+    const payload = await request.json() as Record<string, unknown>;
+    const encounterId = cleanText(payload.encounterId, 80);
+    if (!encounterId) return Response.json({ error: "Choose an encounter to unlink." }, { status: 400 });
+    const db = await ensureDatabase();
+    await db.prepare("DELETE FROM injury_encounters WHERE injury_id = ? AND encounter_id = ?").bind(id, encounterId).run();
+    await writeAudit(actor.id, "UNLINKED", "injury", id, "Encounter removed from injury episode");
     return Response.json({ id });
   } catch (error) {
     return apiError(error);
