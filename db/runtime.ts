@@ -204,6 +204,12 @@ export async function ensureDatabase() {
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
   )`).run();
   await db.prepare("ALTER TABLE user_directory_overrides ADD COLUMN IF NOT EXISTS phone_number text NOT NULL DEFAULT ''").run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS report_settings (
+    id text PRIMARY KEY,
+    settings_json text NOT NULL DEFAULT '{}',
+    updated_by text NOT NULL DEFAULT '',
+    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
 
   // Import the supplied athlete roster once. The import is idempotent, so a
   // partial first run is safely completed on the next workspace load.

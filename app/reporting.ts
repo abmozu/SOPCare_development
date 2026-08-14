@@ -39,6 +39,26 @@ export function saveReportSettings(settings: ReportSettings) {
   localStorage.setItem(storageKey, JSON.stringify(settings));
 }
 
+export async function fetchReportSettings(): Promise<ReportSettings> {
+  try {
+    const response = await fetch("/api/report-settings", { cache: "no-store" });
+    if (!response.ok) throw new Error("Unable to load report settings");
+    const body = await response.json() as { settings?: Partial<ReportSettings> };
+    const settings = { ...defaultReportSettings, ...(body.settings ?? {}) };
+    saveReportSettings(settings);
+    return settings;
+  } catch {
+    return loadReportSettings();
+  }
+}
+
+export async function persistReportSettings(settings: ReportSettings) {
+  const response = await fetch("/api/report-settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings) });
+  const body = await response.json() as { error?: string };
+  if (!response.ok) throw new Error(body.error ?? "Unable to save report settings");
+  saveReportSettings(settings);
+}
+
 type PdfEncounter = { id: string; encounterDate: string; encounterType: string; clinicCity: string; reason: string; diagnosis: string; plan: string; subjective: string; objective: string; assessment: string; practitioner: string; specialty: string };
 type PdfAthlete = { mrn: string; firstName: string; lastName: string; sport: string; discipline: string };
 
@@ -49,7 +69,7 @@ function plainText(html: string) {
 
 export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: PdfAthlete) {
   const { jsPDF } = await import("jspdf");
-  const settings = loadReportSettings();
+  const settings = await fetchReportSettings();
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const width = pdf.internal.pageSize.getWidth();
   const margin = 16;
