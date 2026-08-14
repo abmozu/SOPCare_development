@@ -196,12 +196,14 @@ export async function ensureDatabase() {
     professional_role_id text NOT NULL,
     professional_role text NOT NULL,
     clinic_city text NOT NULL,
+    phone_number text NOT NULL DEFAULT '',
     job_title text NOT NULL DEFAULT '',
     department text NOT NULL DEFAULT '',
     status text NOT NULL DEFAULT 'Active',
     workspace_ids text NOT NULL DEFAULT '[]',
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
   )`).run();
+  await db.prepare("ALTER TABLE user_directory_overrides ADD COLUMN IF NOT EXISTS phone_number text NOT NULL DEFAULT ''").run();
 
   // Import the supplied athlete roster once. The import is idempotent, so a
   // partial first run is safely completed on the next workspace load.

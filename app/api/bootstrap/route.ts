@@ -10,7 +10,9 @@ export async function GET() {
     const actorProfile = await db.prepare(`SELECT u.full_name AS name, pp.specialty
       FROM users u LEFT JOIN practitioner_profiles pp ON pp.user_id = u.id
       WHERE u.id = ? OR u.email = ? LIMIT 1`).bind(actor.id, actor.email).first<{ name: string; specialty: string | null }>();
-    const specialty = actorProfile?.specialty ?? actor.specialty;
+    // Account-directory settings are authoritative. Practitioner profile rows
+    // only retain legacy clinical metadata and must not override a user edit.
+    const specialty = actor.specialty;
     const resolvedActor = {
       ...actor,
       name: actorProfile?.name ?? actor.name,

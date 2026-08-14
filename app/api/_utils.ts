@@ -1,6 +1,6 @@
 import { getPortalUser } from "../mock-auth";
 
-export type ApiActor = { id: string; name: string; email: string; specialty: string; clinicCity: string; permissions: string[]; workspaceIds: string[] };
+export type ApiActor = { id: string; name: string; email: string; phoneNumber: string; jobTitle: string; specialty: string; clinicCity: string; permissions: string[]; workspaceIds: string[] };
 
 export async function requireApiActor(permission = "clinical.records.view"): Promise<ApiActor | Response> {
   const user = await getPortalUser();
@@ -12,6 +12,8 @@ export async function requireApiActor(permission = "clinical.records.view"): Pro
       id: user.id,
       name: user.fullName,
       email: user.email,
+      phoneNumber: user.phoneNumber,
+      jobTitle: user.jobTitle,
       specialty: user.professionalRole,
       clinicCity: user.clinicCity,
       permissions: user.permissionIds,

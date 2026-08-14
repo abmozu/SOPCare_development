@@ -40,7 +40,7 @@ type Practitioner = { id: string; name: string; specialty: string; credentials: 
 type Activity = { id: number; action: string; entityType: string; entityId: string; summary: string; createdAt: string; actor: string };
 type RefItem = { id: string; name: string; category?: string };
 type Bootstrap = {
-  actor: { id: string; name: string; email: string; specialty: string; clinicCity: string };
+  actor: { id: string; name: string; email: string; phoneNumber: string; jobTitle: string; specialty: string; clinicCity: string };
   athletes: Athlete[]; encounters: Encounter[]; injuries: Injury[]; injuryHistory: InjuryHistory[]; rehabilitationPlans: RehabilitationPlan[]; rehabilitationPhases: RehabilitationPhase[]; rehabilitationExercises: RehabilitationExercise[]; rehabilitationSessions: RehabilitationSession[]; practitioners: Practitioner[]; activities: Activity[];
   sports: RefItem[]; teams: RefItem[];
   stats: { activeAthletes: number; encountersThisWeek: number; followUps: number; modifiedTraining: number; openInjuries: number; rtsReviews: number; activeRehabPlans: number; rehabSessionsThisWeek: number; rehabCriteriaReady: number; rehabReviewsDue: number };
@@ -661,7 +661,7 @@ function EncounterForm({ actor, athlete, onSubmit, busy }: { actor: Bootstrap["a
 }
 
 function PractitionerProfileForm({ actor, onSubmit, busy }: { actor: Bootstrap["actor"]; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
-  return <form onSubmit={onSubmit}><ModalHeading kicker="Practitioner profile" title={actor.name} text="Your professional role and city are set when your account is created." /><div className="encounter-author-strip"><Avatar name={actor.name} size="sm" /><span><small>Professional role</small><strong>{actor.specialty}</strong><p>{actor.email}</p></span><b>Signed-in account</b></div><section className="encounter-context"><div><small>Professional role</small><strong>{actor.specialty}</strong></div><div><small>City</small><strong>{actor.clinicCity}</strong></div></section><div className="modal-actions"><button className="button secondary" type="button" onClick={() => window.history.back()}>Close</button></div></form>;
+  return <form onSubmit={onSubmit}><ModalHeading kicker="Practitioner profile" title={actor.name} text="Your professional role and city are set when your account is created." /><div className="encounter-author-strip"><Avatar name={actor.name} size="sm" /><span><small>Professional role</small><strong>{actor.specialty}</strong><p>{actor.jobTitle || actor.email}</p></span><b>Signed-in account</b></div><section className="encounter-context"><div><small>Professional role</small><strong>{actor.specialty}</strong></div><div><small>City</small><strong>{actor.clinicCity}</strong></div></section><div className="form-grid"><label className="span-2">Mobile number<input name="phoneNumber" type="tel" defaultValue={actor.phoneNumber} /></label></div><ModalActions busy={busy} primary="Save profile" /></form>;
 }
 
 function InjuryForm({ athletes, practitioners, selectedId, onSubmit, busy }: { athletes: Athlete[]; practitioners: Practitioner[]; selectedId?: string; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
