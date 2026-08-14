@@ -117,8 +117,15 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   const [safetyCategory, setSafetyCategory] = useState<"allergies" | "chronicConditions" | "prohibitedMedications">("allergies");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
+  const [expandedLinkedEncounters, setExpandedLinkedEncounters] = useState<Record<string, string[]>>({});
   const scrollMemory = useRef(new Map<string, { windowY: number; consultation: number; timeline: number }>());
-  const navigationKey = [view, selectedId ?? "", selectedInjuryId ?? "", selectedRehabilitationId ?? "", profileTab, focusedEncounterId ?? ""].join(":");
+  const navigationKey = view === "Profile"
+    ? [view, selectedId ?? "", profileTab, focusedEncounterId ?? ""].join(":")
+    : view === "InjuryDetail"
+      ? [view, selectedInjuryId ?? ""].join(":")
+      : view === "RehabilitationDetail"
+        ? [view, selectedRehabilitationId ?? ""].join(":")
+        : view;
 
   async function loadData() {
     try {
@@ -398,7 +405,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
           {view === "Overview" && <Overview data={data} today={today} onSearch={(value) => { setQuery(value); setView("Athletes"); }} onInjuries={() => navigate("Injuries")} />}
           {view === "Athletes" && <AthletesView athletes={filtered} all={data.athletes} query={query} setQuery={setQuery} sportFilter={sportFilter} setSportFilter={setSportFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onAthlete={showProfile} />}
           {view === "Injuries" && <InjuriesView injuries={data.injuries} onOpen={showInjury} />}
-          {view === "InjuryDetail" && selectedInjury && <InjuryDetailView injury={selectedInjury} rehabilitationPlan={data.rehabilitationPlans.find((plan) => plan.injuryId === selectedInjury.id)} history={data.injuryHistory.filter((item) => item.injuryId === selectedInjury.id)} encounters={data.encounters.filter((item) => item.injuryId === selectedInjury.id)} backLabel={returnToEncounterId ? "Back to encounter" : "Injury registry"} onBack={returnToEncounterId ? returnToEncounter : () => navigate("Injuries")} onAthlete={showProfile} onEncounter={openEncounterFromInjury} onStage={() => setModal("injuryStage")} onRehabilitation={showRehabilitation} onCreateRehabilitation={() => setModal("rehabilitation")} />}
+          {view === "InjuryDetail" && selectedInjury && <InjuryDetailView injury={selectedInjury} rehabilitationPlan={data.rehabilitationPlans.find((plan) => plan.injuryId === selectedInjury.id)} history={data.injuryHistory.filter((item) => item.injuryId === selectedInjury.id)} encounters={data.encounters.filter((item) => item.injuryId === selectedInjury.id)} expandedEncounters={expandedLinkedEncounters[selectedInjury.id] ?? []} onExpandedEncountersChange={(ids) => setExpandedLinkedEncounters((current) => ({ ...current, [selectedInjury.id]: ids }))} backLabel={returnToEncounterId ? "Back to encounter" : "Injury registry"} onBack={returnToEncounterId ? returnToEncounter : () => navigate("Injuries")} onAthlete={showProfile} onEncounter={openEncounterFromInjury} onStage={() => setModal("injuryStage")} onRehabilitation={showRehabilitation} onCreateRehabilitation={() => setModal("rehabilitation")} />}
           {view === "Rehabilitation" && <RehabilitationView plans={data.rehabilitationPlans} stats={data.stats} onNew={() => setModal("rehabilitation")} onOpen={showRehabilitation} />}
           {view === "RehabilitationDetail" && selectedRehabilitation && <RehabilitationDetailView plan={selectedRehabilitation} phases={data.rehabilitationPhases.filter((phase) => phase.planId === selectedRehabilitation.id)} exercises={data.rehabilitationExercises} sessions={data.rehabilitationSessions.filter((session) => session.planId === selectedRehabilitation.id)} onBack={() => navigate("Rehabilitation")} onInjury={showInjury} onAthlete={showProfile} onSession={() => setModal("rehabSession")} onAdvance={() => setModal("rehabAdvance")} />}
           {view === "Care Team" && <CareTeamView practitioners={data.practitioners} athletes={data.athletes} />}
@@ -539,10 +546,9 @@ function InjuriesView({ injuries, onOpen }: { injuries: Injury[]; onOpen: (id: s
   </>;
 }
 
-function InjuryDetailView({ injury, rehabilitationPlan, history, encounters, backLabel, onBack, onAthlete, onEncounter, onStage, onRehabilitation, onCreateRehabilitation }: { injury: Injury; rehabilitationPlan?: RehabilitationPlan; history: InjuryHistory[]; encounters: Encounter[]; backLabel: string; onBack: () => void; onAthlete: (id: string) => void; onEncounter: (encounter: Encounter) => void; onStage: () => void; onRehabilitation: (id: string) => void; onCreateRehabilitation: () => void }) {
+function InjuryDetailView({ injury, rehabilitationPlan, history, encounters, expandedEncounters, onExpandedEncountersChange, backLabel, onBack, onAthlete, onEncounter, onStage, onRehabilitation, onCreateRehabilitation }: { injury: Injury; rehabilitationPlan?: RehabilitationPlan; history: InjuryHistory[]; encounters: Encounter[]; expandedEncounters: string[]; onExpandedEncountersChange: (ids: string[]) => void; backLabel: string; onBack: () => void; onAthlete: (id: string) => void; onEncounter: (encounter: Encounter) => void; onStage: () => void; onRehabilitation: (id: string) => void; onCreateRehabilitation: () => void }) {
   const activeIndex = injuryStages.indexOf(injury.stage);
-  const [expandedEncounters, setExpandedEncounters] = useState<string[]>([]);
-  const toggleEncounter = (id: string) => setExpandedEncounters((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const toggleEncounter = (id: string) => onExpandedEncountersChange(expandedEncounters.includes(id) ? expandedEncounters.filter((item) => item !== id) : [...expandedEncounters, id]);
   return <>
     <button className={`back-link ${backLabel === "Back to encounter" ? "return-context" : ""}`} onClick={onBack}>← {backLabel}</button>
     <section className="injury-hero"><div className="injury-hero-main"><button className="clean-button injury-athlete" onClick={() => onAthlete(injury.athleteId)}><Avatar name={injury.athleteName} size="lg" /><span><small>{injury.mrn} · {injury.sport}</small><strong>{injury.athleteName}</strong></span></button><div className="injury-title"><span className="profile-kicker">Injury episode · {injury.diagnosisStatus}</span><h1>{injury.title}</h1><p>{injury.bodyArea} · {injury.laterality} · Onset {shortDate(injury.onsetDate)}</p></div></div><div className="injury-hero-actions"><Status value={injury.stage} /><button className="button primary" onClick={onStage}>Update stage</button></div></section>
