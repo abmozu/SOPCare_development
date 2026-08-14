@@ -114,6 +114,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   const [focusedEncounterId, setFocusedEncounterId] = useState<string | null>(null);
   const [returnToInjuryId, setReturnToInjuryId] = useState<string | null>(null);
   const [returnToEncounterId, setReturnToEncounterId] = useState<string | null>(null);
+  const [returnToProfileKey, setReturnToProfileKey] = useState<string | null>(null);
   const [safetyCategory, setSafetyCategory] = useState<"allergies" | "chronicConditions" | "prohibitedMedications">("allergies");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
@@ -247,6 +248,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
 
   function openInjuryFromEncounter(injuryId: string, encounterId: string) {
     captureScroll();
+    setReturnToProfileKey(navigationKey);
     setReturnToEncounterId(encounterId);
     setSelectedInjuryId(injuryId);
     setView("InjuryDetail");
@@ -256,10 +258,14 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     const encounter = data?.encounters.find((item) => item.id === returnToEncounterId);
     if (!encounter) return;
     captureScroll();
+    const destinationKey = ["Profile", encounter.athleteId, "Encounters", encounter.id].join(":");
+    const savedOrigin = returnToProfileKey ? scrollMemory.current.get(returnToProfileKey) : undefined;
+    if (savedOrigin) scrollMemory.current.set(destinationKey, savedOrigin);
     setSelectedId(encounter.athleteId);
     setFocusedEncounterId(encounter.id);
     setProfileTab("Encounters");
     setReturnToEncounterId(null);
+    setReturnToProfileKey(null);
     setView("Profile");
   }
 
