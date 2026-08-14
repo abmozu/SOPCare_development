@@ -520,7 +520,7 @@ function EncountersView({ encounters, athletes, initialAthleteId, embedded = fal
   const athleteEncounters = encounters.filter((encounter) => encounter.athleteId === athleteId);
   const filteredEncounters = athleteEncounters.filter((encounter) => {
     const day = encounter.encounterDate.slice(0, 10);
-    return (encounterType === "All encounter types" || encounter.encounterType === encounterType)
+    return (encounterType === "All professional roles" || encounter.encounterType === encounterType)
       && (clinicCity === "All cities" || encounter.clinicCity === clinicCity)
       && (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
   });
