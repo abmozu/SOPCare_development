@@ -37,6 +37,7 @@ export type PortalUser = {
   phoneNumber: string;
   professionalRoleId: string;
   professionalRole: string;
+  clinicCity: "Riyadh" | "Jeddah" | "Dammam";
   jobTitle: string;
   department: string;
   status: "Active" | "Inactive";
@@ -94,10 +95,10 @@ export const ACCESS_ROLES: AccessRole[] = [
 ];
 
 export const MOCK_USERS: PortalUser[] = [
-  { id: "user-admin", fullName: "Demo Administrator", username: "admin", email: "admin@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-sports-medicine", professionalRole: "Sports Medicine Physician", jobTitle: "Medical Director", department: "Sports Medicine", status: "Active", workspaceIds: ["administration", "healthcare"], roleIds: ["role-admin"], permissionIds: PERMISSIONS.map((permission) => permission.id), permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-08-07T08:34:00+03:00" },
-  { id: "user-lina", fullName: "Demo Clinician", username: "dr.lina", email: "clinician@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-sports-medicine", professionalRole: "Sports Medicine Physician", jobTitle: "Consultant", department: "Sports Medicine", status: "Active", workspaceIds: ["healthcare"], roleIds: ["role-clinician"], permissionIds: clinicalDefaults, permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-08-07T07:58:00+03:00" },
-  { id: "user-noura", fullName: "Demo Psychologist", username: "dr.noura", email: "psychologist@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-psychology", professionalRole: "Sports Psychologist", jobTitle: "Sports Psychologist", department: "Psychology", status: "Active", workspaceIds: ["healthcare"], roleIds: ["role-clinician"], permissionIds: clinicalDefaults, permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-08-06T15:20:00+03:00" },
-  { id: "user-viewer", fullName: "Demo Viewer", username: "viewer", email: "viewer@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-nutrition", professionalRole: "Sports Nutritionist", jobTitle: "Sports Nutritionist", department: "Performance Health", status: "Inactive", workspaceIds: ["healthcare"], roleIds: ["role-readonly"], permissionIds: ["athletes.view", "clinical.records.view"], permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-07-29T11:10:00+03:00" },
+  { id: "user-admin", fullName: "Demo Administrator", username: "admin", email: "admin@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-sports-medicine", professionalRole: "Sports Medicine Physician", clinicCity: "Riyadh", jobTitle: "Medical Director", department: "Sports Medicine", status: "Active", workspaceIds: ["administration", "healthcare"], roleIds: ["role-admin"], permissionIds: PERMISSIONS.map((permission) => permission.id), permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-08-07T08:34:00+03:00" },
+  { id: "user-lina", fullName: "Demo Clinician", username: "dr.lina", email: "clinician@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-sports-medicine", professionalRole: "Sports Medicine Physician", clinicCity: "Riyadh", jobTitle: "Consultant", department: "Sports Medicine", status: "Active", workspaceIds: ["healthcare"], roleIds: ["role-clinician"], permissionIds: clinicalDefaults, permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-08-07T07:58:00+03:00" },
+  { id: "user-noura", fullName: "Demo Psychologist", username: "dr.noura", email: "psychologist@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-psychology", professionalRole: "Sports Psychologist", clinicCity: "Jeddah", jobTitle: "Sports Psychologist", department: "Psychology", status: "Active", workspaceIds: ["healthcare"], roleIds: ["role-clinician"], permissionIds: clinicalDefaults, permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-08-06T15:20:00+03:00" },
+  { id: "user-viewer", fullName: "Demo Viewer", username: "viewer", email: "viewer@example.invalid", phoneNumber: "Not applicable", professionalRoleId: "pr-nutrition", professionalRole: "Sports Nutritionist", clinicCity: "Dammam", jobTitle: "Sports Nutritionist", department: "Performance Health", status: "Inactive", workspaceIds: ["healthcare"], roleIds: ["role-readonly"], permissionIds: ["athletes.view", "clinical.records.view"], permissionOverrides: { grant: [], revoke: [] }, lastActive: "2026-07-29T11:10:00+03:00" },
 ];
 
 export const MOCK_AUDIT_LOGS: AuditEntry[] = [

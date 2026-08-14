@@ -178,6 +178,7 @@ export async function ensureDatabase() {
     phone_number text NOT NULL DEFAULT '',
     professional_role_id text NOT NULL,
     professional_role text NOT NULL,
+    clinic_city text NOT NULL DEFAULT 'Riyadh',
     job_title text NOT NULL DEFAULT '',
     department text NOT NULL DEFAULT '',
     status text NOT NULL DEFAULT 'Active',
@@ -189,6 +190,7 @@ export async function ensureDatabase() {
     created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
   )`).run();
+  await db.prepare("ALTER TABLE portal_users ADD COLUMN IF NOT EXISTS clinic_city text NOT NULL DEFAULT 'Riyadh'").run();
 
   // Import the supplied athlete roster once. The import is idempotent, so a
   // partial first run is safely completed on the next workspace load.

@@ -34,19 +34,19 @@ export async function hashPassword(password: string) {
 
 type StoredPortalUser = {
   id: string; username: string; password_hash: string; email: string; full_name: string; phone_number: string;
-  professional_role_id: string; professional_role: string; job_title: string; department: string; status: "Active" | "Inactive";
+  professional_role_id: string; professional_role: string; clinic_city: "Riyadh" | "Jeddah" | "Dammam"; job_title: string; department: string; status: "Active" | "Inactive";
   workspace_ids: string; role_ids: string; permission_ids: string; permission_overrides: string; last_active: string;
 };
 
 function parseList(value: string) { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : []; } catch { return []; } }
 function parseOverrides(value: string) { try { const parsed = JSON.parse(value); return { grant: parseList(JSON.stringify(parsed?.grant ?? [])), revoke: parseList(JSON.stringify(parsed?.revoke ?? [])) }; } catch { return { grant: [], revoke: [] }; } }
 function portalUser(row: StoredPortalUser): PortalUser {
-  return { id: row.id, username: row.username, email: row.email, fullName: row.full_name, phoneNumber: row.phone_number, professionalRoleId: row.professional_role_id, professionalRole: row.professional_role, jobTitle: row.job_title, department: row.department, status: row.status, workspaceIds: parseList(row.workspace_ids) as PortalUser["workspaceIds"], roleIds: parseList(row.role_ids), permissionIds: parseList(row.permission_ids), permissionOverrides: parseOverrides(row.permission_overrides), lastActive: row.last_active };
+  return { id: row.id, username: row.username, email: row.email, fullName: row.full_name, phoneNumber: row.phone_number, professionalRoleId: row.professional_role_id, professionalRole: row.professional_role, clinicCity: row.clinic_city ?? "Riyadh", jobTitle: row.job_title, department: row.department, status: row.status, workspaceIds: parseList(row.workspace_ids) as PortalUser["workspaceIds"], roleIds: parseList(row.role_ids), permissionIds: parseList(row.permission_ids), permissionOverrides: parseOverrides(row.permission_overrides), lastActive: row.last_active };
 }
 
 async function storedPortalUserRows() {
   const db = await ensureDatabase();
-  const rows = await db.prepare("SELECT id, username, password_hash, email, full_name, phone_number, professional_role_id, professional_role, job_title, department, status, workspace_ids, role_ids, permission_ids, permission_overrides, last_active FROM portal_users ORDER BY created_at DESC").all<StoredPortalUser>();
+  const rows = await db.prepare("SELECT id, username, password_hash, email, full_name, phone_number, professional_role_id, professional_role, clinic_city, job_title, department, status, workspace_ids, role_ids, permission_ids, permission_overrides, last_active FROM portal_users ORDER BY created_at DESC").all<StoredPortalUser>();
   return rows.results;
 }
 

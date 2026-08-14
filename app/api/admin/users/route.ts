@@ -16,9 +16,10 @@ export async function POST(request: Request) {
     const password = String(body.password ?? "");
     const email = String(body.email ?? "").trim().toLowerCase();
     const professionalRoleId = String(body.professionalRoleId ?? "");
+    const clinicCity = String(body.clinicCity ?? "");
     const professionalRole = PROFESSIONAL_ROLES.find((role) => role.id === professionalRoleId);
     const workspaceIds = array(body.workspaceIds).filter((id) => id === "administration" || id === "healthcare");
-    if (!fullName || !/^[a-z0-9._-]{3,80}$/i.test(username) || password.length < 6 || !/^\S+@\S+\.\S+$/.test(email) || !professionalRole || workspaceIds.length === 0) {
+    if (!fullName || !/^[a-z0-9._-]{3,80}$/i.test(username) || password.length < 6 || !/^\S+@\S+\.\S+$/.test(email) || !professionalRole || !["Riyadh", "Jeddah", "Dammam"].includes(clinicCity) || workspaceIds.length === 0) {
       return Response.json({ error: "Complete all required user details. Passwords must contain at least 6 characters." }, { status: 400 });
     }
     const db = await ensureDatabase();
@@ -27,21 +28,21 @@ export async function POST(request: Request) {
     const user: PortalUser = {
       id, fullName, username, email,
       phoneNumber: String(body.phoneNumber ?? "").trim(),
-      professionalRoleId, professionalRole: professionalRole.name,
+      professionalRoleId, professionalRole: professionalRole.name, clinicCity: clinicCity as PortalUser["clinicCity"],
       jobTitle: String(body.jobTitle ?? "").trim(), department: String(body.department ?? "").trim(),
       status: body.status === "Inactive" ? "Inactive" : "Active", workspaceIds,
       roleIds: ["role-clinician"], permissionIds: professionalRole.defaultPermissionIds,
       permissionOverrides: { grant: [], revoke: [] }, lastActive: new Date().toISOString(),
     };
     if (existing) {
-      await db.prepare(`UPDATE portal_users SET username = ?, password_hash = ?, email = ?, full_name = ?, phone_number = ?, professional_role_id = ?, professional_role = ?, job_title = ?, department = ?, status = ?, workspace_ids = ?, role_ids = ?, permission_ids = ?, permission_overrides = ?, last_active = ?, updated_at = CURRENT_TIMESTAMP::text WHERE id = ?`)
-        .bind(user.username, await hashPassword(password), user.email, user.fullName, user.phoneNumber, user.professionalRoleId, user.professionalRole, user.jobTitle, user.department, user.status, JSON.stringify(user.workspaceIds), JSON.stringify(user.roleIds), JSON.stringify(user.permissionIds), JSON.stringify(user.permissionOverrides), user.lastActive, id).run();
+      await db.prepare(`UPDATE portal_users SET username = ?, password_hash = ?, email = ?, full_name = ?, phone_number = ?, professional_role_id = ?, professional_role = ?, clinic_city = ?, job_title = ?, department = ?, status = ?, workspace_ids = ?, role_ids = ?, permission_ids = ?, permission_overrides = ?, last_active = ?, updated_at = CURRENT_TIMESTAMP::text WHERE id = ?`)
+        .bind(user.username, await hashPassword(password), user.email, user.fullName, user.phoneNumber, user.professionalRoleId, user.professionalRole, user.clinicCity, user.jobTitle, user.department, user.status, JSON.stringify(user.workspaceIds), JSON.stringify(user.roleIds), JSON.stringify(user.permissionIds), JSON.stringify(user.permissionOverrides), user.lastActive, id).run();
       await writeAudit(actor.id, "RESTORED", "portal_user", id, `Restored user ${username}`);
       return Response.json({ user: publicUser(user), restored: true });
     }
-    await db.prepare(`INSERT INTO portal_users (id, username, password_hash, email, full_name, phone_number, professional_role_id, professional_role, job_title, department, status, workspace_ids, role_ids, permission_ids, permission_overrides, last_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, user.username, await hashPassword(password), user.email, user.fullName, user.phoneNumber, user.professionalRoleId, user.professionalRole, user.jobTitle, user.department, user.status, JSON.stringify(user.workspaceIds), JSON.stringify(user.roleIds), JSON.stringify(user.permissionIds), JSON.stringify(user.permissionOverrides), user.lastActive).run();
+    await db.prepare(`INSERT INTO portal_users (id, username, password_hash, email, full_name, phone_number, professional_role_id, professional_role, clinic_city, job_title, department, status, workspace_ids, role_ids, permission_ids, permission_overrides, last_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, user.username, await hashPassword(password), user.email, user.fullName, user.phoneNumber, user.professionalRoleId, user.professionalRole, user.clinicCity, user.jobTitle, user.department, user.status, JSON.stringify(user.workspaceIds), JSON.stringify(user.roleIds), JSON.stringify(user.permissionIds), JSON.stringify(user.permissionOverrides), user.lastActive).run();
     await writeAudit(actor.id, "CREATED", "portal_user", id, `Created user ${username}`);
     return Response.json({ user: publicUser(user) }, { status: 201 });
   } catch (error) {
