@@ -157,15 +157,16 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     };
     restore();
     const frame = window.requestAnimationFrame(restore);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      scrollMemory.current.set(navigationKey, {
-        windowY: window.scrollY,
-        consultation: document.querySelector<HTMLElement>(".consultation-scroll")?.scrollTop ?? 0,
-        timeline: document.querySelector<HTMLElement>(".visit-history-list")?.scrollTop ?? 0,
-      });
-    };
+    return () => window.cancelAnimationFrame(frame);
   }, [navigationKey]);
+
+  function captureScroll(key = navigationKey) {
+    scrollMemory.current.set(key, {
+      windowY: window.scrollY,
+      consultation: document.querySelector<HTMLElement>(".consultation-scroll")?.scrollTop ?? 0,
+      timeline: document.querySelector<HTMLElement>(".visit-history-list")?.scrollTop ?? 0,
+    });
+  }
 
   const selected = data?.athletes.find((athlete) => athlete.id === selectedId) ?? null;
   const selectedInjury = data?.injuries.find((injury) => injury.id === selectedInjuryId) ?? null;
@@ -181,6 +182,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   }, [data, query, sportFilter, statusFilter]);
 
   function showProfile(id: string) {
+    captureScroll();
     setFocusedEncounterId(null);
     setReturnToInjuryId(null);
     setSelectedId(id);
@@ -189,17 +191,20 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   }
 
   function showInjury(id: string) {
+    captureScroll();
     setReturnToEncounterId(null);
     setSelectedInjuryId(id);
     setView("InjuryDetail");
   }
 
   function showRehabilitation(id: string) {
+    captureScroll();
     setSelectedRehabilitationId(id);
     setView("RehabilitationDetail");
   }
 
   function navigate(next: string) {
+    captureScroll();
     setView(next);
     setSelectedId(null);
     setSelectedInjuryId(null);
@@ -241,6 +246,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   }
 
   function openInjuryFromEncounter(injuryId: string, encounterId: string) {
+    captureScroll();
     setReturnToEncounterId(encounterId);
     setSelectedInjuryId(injuryId);
     setView("InjuryDetail");
@@ -249,6 +255,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   function returnToEncounter() {
     const encounter = data?.encounters.find((item) => item.id === returnToEncounterId);
     if (!encounter) return;
+    captureScroll();
     setSelectedId(encounter.athleteId);
     setFocusedEncounterId(encounter.id);
     setProfileTab("Encounters");
@@ -257,6 +264,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   }
 
   function openEncounterFromInjury(encounter: Encounter) {
+    captureScroll();
     setReturnToInjuryId(selectedInjuryId);
     setFocusedEncounterId(encounter.id);
     setSelectedId(encounter.athleteId);
@@ -396,13 +404,13 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
       <div className="main-shell">
         <header className="topbar">
           <button className="mobile-brand" onClick={() => navigate("Overview")}><span className="brand-mark">S</span><strong>SOPCare</strong></button>
-          <label className="global-search"><span>⌕</span><input aria-label="Search athletes" placeholder="Search athlete or MRN…" value={query} onChange={(event) => { setQuery(event.target.value); setView("Athletes"); }} /><kbd>⌘ K</kbd></label>
+          <label className="global-search"><span>⌕</span><input aria-label="Search athletes" placeholder="Search athlete or MRN…" value={query} onChange={(event) => { captureScroll(); setQuery(event.target.value); setView("Athletes"); }} /><kbd>⌘ K</kbd></label>
           <div className="top-actions"><button className="icon-button" aria-label="Notifications"><span className="notification-dot" />◌</button><button className="account" onClick={() => setModal("practitionerProfile")} aria-label="Open practitioner profile"><Avatar name={identity.fullName} size="sm" /><span><strong>{identity.fullName}</strong><small>{identity.professionalRole}</small></span><span className="chevron">⌄</span></button></div>
         </header>
         <div className="prototype-banner"><span>Prototype environment</span> Do not enter real patient information.</div>
 
         <main className="content">
-          {view === "Overview" && <Overview data={data} today={today} onSearch={(value) => { setQuery(value); setView("Athletes"); }} onInjuries={() => navigate("Injuries")} />}
+          {view === "Overview" && <Overview data={data} today={today} onSearch={(value) => { captureScroll(); setQuery(value); setView("Athletes"); }} onInjuries={() => navigate("Injuries")} />}
           {view === "Athletes" && <AthletesView athletes={filtered} all={data.athletes} query={query} setQuery={setQuery} sportFilter={sportFilter} setSportFilter={setSportFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onAthlete={showProfile} />}
           {view === "Injuries" && <InjuriesView injuries={data.injuries} onOpen={showInjury} />}
           {view === "InjuryDetail" && selectedInjury && <InjuryDetailView injury={selectedInjury} rehabilitationPlan={data.rehabilitationPlans.find((plan) => plan.injuryId === selectedInjury.id)} history={data.injuryHistory.filter((item) => item.injuryId === selectedInjury.id)} encounters={data.encounters.filter((item) => item.injuryId === selectedInjury.id)} expandedEncounters={expandedLinkedEncounters[selectedInjury.id] ?? []} onExpandedEncountersChange={(ids) => setExpandedLinkedEncounters((current) => ({ ...current, [selectedInjury.id]: ids }))} backLabel={returnToEncounterId ? "Back to encounter" : "Injury registry"} onBack={returnToEncounterId ? returnToEncounter : () => navigate("Injuries")} onAthlete={showProfile} onEncounter={openEncounterFromInjury} onStage={() => setModal("injuryStage")} onRehabilitation={showRehabilitation} onCreateRehabilitation={() => setModal("rehabilitation")} />}
