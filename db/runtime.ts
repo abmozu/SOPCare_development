@@ -191,6 +191,17 @@ export async function ensureDatabase() {
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
   )`).run();
   await db.prepare("ALTER TABLE portal_users ADD COLUMN IF NOT EXISTS clinic_city text NOT NULL DEFAULT 'Riyadh'").run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS user_directory_overrides (
+    user_id text PRIMARY KEY,
+    professional_role_id text NOT NULL,
+    professional_role text NOT NULL,
+    clinic_city text NOT NULL,
+    job_title text NOT NULL DEFAULT '',
+    department text NOT NULL DEFAULT '',
+    status text NOT NULL DEFAULT 'Active',
+    workspace_ids text NOT NULL DEFAULT '[]',
+    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
 
   // Import the supplied athlete roster once. The import is idempotent, so a
   // partial first run is safely completed on the next workspace load.

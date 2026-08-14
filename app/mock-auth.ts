@@ -44,6 +44,19 @@ function portalUser(row: StoredPortalUser): PortalUser {
   return { id: row.id, username: row.username, email: row.email, fullName: row.full_name, phoneNumber: row.phone_number, professionalRoleId: row.professional_role_id, professionalRole: row.professional_role, clinicCity: row.clinic_city ?? "Riyadh", jobTitle: row.job_title, department: row.department, status: row.status, workspaceIds: parseList(row.workspace_ids) as PortalUser["workspaceIds"], roleIds: parseList(row.role_ids), permissionIds: parseList(row.permission_ids), permissionOverrides: parseOverrides(row.permission_overrides), lastActive: row.last_active };
 }
 
+type DirectoryOverride = { user_id: string; professional_role_id: string; professional_role: string; clinic_city: PortalUser["clinicCity"]; job_title: string; department: string; status: PortalUser["status"]; workspace_ids: string };
+function applyDirectoryOverride(user: PortalUser, override?: DirectoryOverride): PortalUser {
+  return override ? { ...user, professionalRoleId: override.professional_role_id, professionalRole: override.professional_role, clinicCity: override.clinic_city, jobTitle: override.job_title, department: override.department, status: override.status, workspaceIds: parseList(override.workspace_ids) as PortalUser["workspaceIds"] } : user;
+}
+
+export async function directoryUsers() {
+  const db = await ensureDatabase();
+  const overrides = await db.prepare("SELECT user_id, professional_role_id, professional_role, clinic_city, job_title, department, status, workspace_ids FROM user_directory_overrides").all<DirectoryOverride>();
+  const byId = new Map(overrides.results.map((item) => [item.user_id, item]));
+  const stored = await storedPortalUsers();
+  return [...stored.map((user) => applyDirectoryOverride(user, byId.get(user.id))), ...MOCK_USERS.map((user) => applyDirectoryOverride(user, byId.get(user.id)))];
+}
+
 async function storedPortalUserRows() {
   const db = await ensureDatabase();
   const rows = await db.prepare("SELECT id, username, password_hash, email, full_name, phone_number, professional_role_id, professional_role, clinic_city, job_title, department, status, workspace_ids, role_ids, permission_ids, permission_overrides, last_active FROM portal_users ORDER BY created_at DESC").all<StoredPortalUser>();
@@ -85,7 +98,7 @@ export async function getPortalUser(): Promise<PortalUser | null> {
   try {
     const parsed = JSON.parse(decode64url(payload)) as { userId: string; expiresAt: number };
     if (parsed.expiresAt < Date.now()) return null;
-    const user = (await storedPortalUsers()).find((candidate) => candidate.id === parsed.userId && candidate.status === "Active") ?? MOCK_USERS.find((candidate) => candidate.id === parsed.userId && candidate.status === "Active");
+    const user = (await directoryUsers()).find((candidate) => candidate.id === parsed.userId && candidate.status === "Active");
     return user ? publicUser(user) : null;
   } catch {
     return null;

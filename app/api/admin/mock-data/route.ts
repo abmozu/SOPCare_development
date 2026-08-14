@@ -1,5 +1,5 @@
-import { ACCESS_ROLES, MOCK_AUDIT_LOGS, MOCK_USERS, PERMISSIONS, PROFESSIONAL_ROLES, WORKSPACES, publicUser } from "../../../access-model";
-import { getPortalUser, storedPortalUsers } from "../../../mock-auth";
+import { ACCESS_ROLES, MOCK_AUDIT_LOGS, PERMISSIONS, PROFESSIONAL_ROLES, WORKSPACES, publicUser } from "../../../access-model";
+import { directoryUsers, getPortalUser } from "../../../mock-auth";
 import { ensureDatabase } from "../../../../db/runtime";
 
 export async function GET() {
@@ -19,10 +19,10 @@ export async function GET() {
       ORDER BY a.updated_at DESC, a.last_name ASC`).all(),
     db.prepare("SELECT id, name FROM sports ORDER BY name").all(),
     db.prepare("SELECT id, name FROM teams ORDER BY name").all(),
-    storedPortalUsers(),
+    directoryUsers(),
   ]);
   return Response.json({
-    users: [...storedUsers.map(publicUser), ...MOCK_USERS.map(publicUser)],
+    users: storedUsers.map(publicUser),
     workspaces: WORKSPACES,
     permissions: PERMISSIONS,
     professionalRoles: PROFESSIONAL_ROLES,
