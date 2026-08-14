@@ -39,6 +39,7 @@ type RehabilitationSession = { id: string; planId: string; phaseId: string; sess
 type Practitioner = { id: string; name: string; specialty: string; credentials: string };
 type Activity = { id: number; action: string; entityType: string; entityId: string; summary: string; createdAt: string; actor: string };
 type RefItem = { id: string; name: string; category?: string };
+type ScrollPosition = { windowY: number; consultation: number; timeline: number };
 type Bootstrap = {
   actor: { id: string; name: string; email: string; phoneNumber: string; jobTitle: string; specialty: string; clinicCity: string };
   athletes: Athlete[]; encounters: Encounter[]; injuries: Injury[]; injuryHistory: InjuryHistory[]; rehabilitationPlans: RehabilitationPlan[]; rehabilitationPhases: RehabilitationPhase[]; rehabilitationExercises: RehabilitationExercise[]; rehabilitationSessions: RehabilitationSession[]; practitioners: Practitioner[]; activities: Activity[];
@@ -115,11 +116,12 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   const [returnToInjuryId, setReturnToInjuryId] = useState<string | null>(null);
   const [returnToEncounterId, setReturnToEncounterId] = useState<string | null>(null);
   const [returnToProfileKey, setReturnToProfileKey] = useState<string | null>(null);
+  const [returnToEncounterScroll, setReturnToEncounterScroll] = useState<ScrollPosition | null>(null);
   const [safetyCategory, setSafetyCategory] = useState<"allergies" | "chronicConditions" | "prohibitedMedications">("allergies");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
   const [expandedLinkedEncounters, setExpandedLinkedEncounters] = useState<Record<string, string[]>>({});
-  const scrollMemory = useRef(new Map<string, { windowY: number; consultation: number; timeline: number }>());
+  const scrollMemory = useRef(new Map<string, ScrollPosition>());
   const navigationKey = view === "Profile"
     ? [view, selectedId ?? "", profileTab, focusedEncounterId ?? ""].join(":")
     : view === "InjuryDetail"
@@ -162,11 +164,13 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   }, [navigationKey]);
 
   function captureScroll(key = navigationKey) {
-    scrollMemory.current.set(key, {
+    const position: ScrollPosition = {
       windowY: window.scrollY,
       consultation: document.querySelector<HTMLElement>(".consultation-scroll")?.scrollTop ?? 0,
       timeline: document.querySelector<HTMLElement>(".visit-history-list")?.scrollTop ?? 0,
-    });
+    };
+    scrollMemory.current.set(key, position);
+    return position;
   }
 
   const selected = data?.athletes.find((athlete) => athlete.id === selectedId) ?? null;
@@ -247,8 +251,9 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   }
 
   function openInjuryFromEncounter(injuryId: string, encounterId: string) {
-    captureScroll();
+    const originScroll = captureScroll();
     setReturnToProfileKey(navigationKey);
+    setReturnToEncounterScroll(originScroll);
     setReturnToEncounterId(encounterId);
     setSelectedInjuryId(injuryId);
     setView("InjuryDetail");
@@ -259,13 +264,14 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     if (!encounter) return;
     captureScroll();
     const destinationKey = ["Profile", encounter.athleteId, "Encounters", encounter.id].join(":");
-    const savedOrigin = returnToProfileKey ? scrollMemory.current.get(returnToProfileKey) : undefined;
+    const savedOrigin = returnToEncounterScroll ?? (returnToProfileKey ? scrollMemory.current.get(returnToProfileKey) : undefined);
     if (savedOrigin) scrollMemory.current.set(destinationKey, savedOrigin);
     setSelectedId(encounter.athleteId);
     setFocusedEncounterId(encounter.id);
     setProfileTab("Encounters");
     setReturnToEncounterId(null);
     setReturnToProfileKey(null);
+    setReturnToEncounterScroll(null);
     setView("Profile");
   }
 
