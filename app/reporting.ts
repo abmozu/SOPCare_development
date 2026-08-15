@@ -210,14 +210,14 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
 
   addAsset(await resolveAsset(settings.primaryLogo), settings.primaryLogoPosition, y, 36, 14);
   addAsset(await resolveAsset(settings.secondaryLogo), settings.secondaryLogoPosition, y, 42, 14);
-  addAsset(await resolveAsset("/branding/sopcare-logo-v2.png"), "center", y - 1, 76, 30);
+  addAsset(await resolveAsset("/branding/sopcare-logo-v2.png"), "center", y, 76, 30);
   pdf.setTextColor(...green); pdf.setFont("helvetica", "bold"); pdf.setFontSize(15);
-  pdf.text(settings.reportTitle || "Medical Report", width / 2, y + 26, { align: "center" });
+  pdf.text(settings.reportTitle || "Medical Report", width / 2, y + 38, { align: "center" });
   pdf.setTextColor(...muted); pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5);
-  pdf.text(settings.organizationName || "Saudi Olympic and Paralympic Care", width / 2, y + 31, { align: "center" });
-  pdf.setDrawColor(...green); pdf.setLineWidth(0.8); pdf.line(margin, y + 36, width - margin, y + 36);
-  pdf.setDrawColor(...gold); pdf.setLineWidth(1.3); pdf.line(margin, y + 37.5, width - margin, y + 37.5);
-  y += 46;
+  pdf.text(settings.organizationName || "Saudi Olympic and Paralympic Care", width / 2, y + 43, { align: "center" });
+  pdf.setDrawColor(...green); pdf.setLineWidth(0.8); pdf.line(margin, y + 49, width - margin, y + 49);
+  pdf.setDrawColor(...gold); pdf.setLineWidth(1.3); pdf.line(margin, y + 50.5, width - margin, y + 50.5);
+  y += 59;
 
   pdf.setFillColor(...green); pdf.roundedRect(margin, y, usable, 12, 2.5, 2.5, "F");
   pdf.setTextColor(255, 255, 255); pdf.setFont("helvetica", "bold"); pdf.setFontSize(8);
