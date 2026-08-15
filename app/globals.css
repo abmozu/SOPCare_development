@@ -509,3 +509,61 @@ th { font-size: 10px; letter-spacing: .075em; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Responsive sign-in scale and clearer institutional branding. */
+.auth-panel { padding: clamp(26px, 4.5vw, 76px); }
+.login-card {
+  width: min(560px, 100%);
+  padding: clamp(38px, 5.5vh, 64px) clamp(34px, 3.8vw, 60px);
+}
+.login-card h2 { font-size: clamp(34px, 2.25vw, 42px); }
+.login-intro { font-size: clamp(14px, .88vw, 16px); line-height: 1.65; }
+.login-card > label { font-size: 14px; }
+.login-card input { height: clamp(54px, 5.8vh, 62px); font-size: 16px; }
+.login-submit { min-height: clamp(54px, 5.8vh, 62px); font-size: 15px; }
+
+.brand-logos { min-width: 252px; height: 96px; padding: 12px 16px; gap: 14px; }
+.brand-logos .team-saudi-logo { width: 124px; height: 52px; }
+.brand-logos .olympic-logo { width: 84px; height: 63px; }
+.brand-logo-divider { height: 52px; }
+
+.brand .brand-logos.compact {
+  width: 100%;
+  min-width: 0;
+  height: 70px;
+  padding: 8px 10px;
+  gap: 10px;
+}
+.brand .brand-logos.compact .team-saudi-logo { width: 89px; height: 39px; }
+.brand .brand-logos.compact .olympic-logo { width: 60px; height: 45px; }
+.brand .brand-logos.compact .brand-logo-divider { height: 38px; }
+.brand .brand-logos + span { display: none; }
+.workspace-header .brand-logos { min-width: 202px; height: 72px; padding: 9px 12px; gap: 10px; }
+.workspace-header .brand-logos .team-saudi-logo { width: 98px; height: 43px; }
+.workspace-header .brand-logos .olympic-logo { width: 67px; height: 50px; }
+.workspace-header .brand-logos .brand-logo-divider { height: 41px; }
+
+@media (max-height: 760px) and (min-width: 1051px) {
+  .auth-panel { padding-block: 24px; }
+  .login-card { padding-block: 32px; }
+  .login-card h2 { margin-bottom: 8px; font-size: 32px; }
+  .login-card > label { margin-top: 14px; }
+  .login-card input, .login-submit { min-height: 48px; height: 48px; }
+}
+
+@media (max-width: 1050px) {
+  .login-card { width: min(590px, 100%); }
+  .login-mark .brand-logos { margin-inline: auto; }
+}
+
+@media (max-width: 620px) {
+  .auth-panel { padding: 16px; }
+  .login-card { padding: 30px 22px; border-radius: 22px; }
+  .login-card h2 { font-size: 30px; }
+  .login-mark .brand-logos { min-width: 220px; height: 82px; }
+  .login-mark .brand-logos .team-saudi-logo { width: 106px; height: 46px; }
+  .login-mark .brand-logos .olympic-logo { width: 72px; height: 54px; }
+  .mobile-brand .brand-logos.compact { min-width: 136px; width: 136px; height: 48px; padding: 5px 7px; }
+  .mobile-brand .brand-logos.compact .team-saudi-logo { width: 65px; height: 28px; }
+  .mobile-brand .brand-logos.compact .olympic-logo { width: 44px; height: 33px; }
+}
