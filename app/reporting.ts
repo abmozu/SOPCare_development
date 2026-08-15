@@ -211,32 +211,42 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
   addAsset(await resolveAsset(settings.primaryLogo), settings.primaryLogoPosition, y, 36, 14);
   addAsset(await resolveAsset(settings.secondaryLogo), settings.secondaryLogoPosition, y, 42, 14);
   addAsset(await resolveAsset("/branding/sopcare-logo-v2.png"), "center", y - 1, 76, 30);
-  pdf.setTextColor(...muted); pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
-  pdf.text(settings.reportTitle.toUpperCase(), width / 2, y + 32, { align: "center" });
-  pdf.setDrawColor(...gold); pdf.setLineWidth(1.2); pdf.line(margin, y + 33, width - margin, y + 33);
-  y += 42;
+  pdf.setTextColor(...green); pdf.setFont("helvetica", "bold"); pdf.setFontSize(15);
+  pdf.text(settings.reportTitle || "Medical Report", width / 2, y + 26, { align: "center" });
+  pdf.setTextColor(...muted); pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5);
+  pdf.text(settings.organizationName || "Saudi Olympic and Paralympic Care", width / 2, y + 31, { align: "center" });
+  pdf.setDrawColor(...green); pdf.setLineWidth(0.8); pdf.line(margin, y + 36, width - margin, y + 36);
+  pdf.setDrawColor(...gold); pdf.setLineWidth(1.3); pdf.line(margin, y + 37.5, width - margin, y + 37.5);
+  y += 46;
 
-  pdf.setFillColor(...green); pdf.roundedRect(margin, y, usable, 34, 3, 3, "F");
-  pdf.setTextColor(210, 231, 222); pdf.setFontSize(7); pdf.setFont("helvetica", "bold");
-  pdf.text("ATHLETE", margin + 7, y + 8); pdf.text("VISIT", margin + 101, y + 8);
-  pdf.setTextColor(255, 255, 255); pdf.setFontSize(13);
-  pdf.text(`${athlete.firstName} ${athlete.lastName}`, margin + 7, y + 17);
-  pdf.setFontSize(10); pdf.text(encounter.encounterType, margin + 101, y + 17);
-  pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
-  pdf.text(`${athlete.mrn}  |  ${athlete.sport}${athlete.discipline ? `  |  ${athlete.discipline}` : ""}`, margin + 7, y + 25);
+  pdf.setFillColor(...green); pdf.roundedRect(margin, y, usable, 12, 2.5, 2.5, "F");
+  pdf.setTextColor(255, 255, 255); pdf.setFont("helvetica", "bold"); pdf.setFontSize(8);
+  pdf.text("ATHLETE IDENTITY", margin + 7, y + 7.5);
+  pdf.text("VISIT INFORMATION", margin + usable / 2 + 7, y + 7.5);
+  y += 17;
+
   const visitDate = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(encounter.encounterDate));
-  pdf.text(`${visitDate}  |  ${encounter.clinicCity}`, margin + 101, y + 25);
-  y += 42;
-
-  const meta = [["PRACTITIONER", encounter.practitioner], ["PROFESSIONAL ROLE", encounter.specialty], ["CITY", encounter.clinicCity]];
-  const columnWidth = usable / 3;
-  meta.forEach(([label, value], index) => {
-    const x = margin + index * columnWidth;
-    pdf.setFillColor(...mint); pdf.roundedRect(x + (index ? 2 : 0), y, columnWidth - 3, 24, 2.5, 2.5, "F");
-    pdf.setTextColor(...muted); pdf.setFont("helvetica", "bold"); pdf.setFontSize(6.5); pdf.text(label, x + 6, y + 8);
-    pdf.setTextColor(...ink); pdf.setFontSize(9); pdf.text(pdf.splitTextToSize(value || "Not recorded", columnWidth - 12), x + 6, y + 16);
+  const info = [
+    ["VISIT DATE", visitDate],
+    ["ATHLETE NAME", `${athlete.firstName} ${athlete.lastName}`],
+    ["AGE", `${reportAge(athlete.dateOfBirth, encounter.encounterDate)} years`],
+    ["SPORT / DISCIPLINE", `${athlete.sport}${athlete.discipline ? ` / ${athlete.discipline}` : ""}`],
+    ["CLINIC CITY", encounter.clinicCity || "Not recorded"],
+    ["REPORTER NAME", encounter.practitioner || "Not recorded"],
+  ];
+  const cardWidth = (usable - 6) / 3;
+  const cardHeight = 23;
+  info.forEach(([label, value], index) => {
+    const column = index % 3;
+    const row = Math.floor(index / 3);
+    const x = margin + column * (cardWidth + 3);
+    const cardY = y + row * (cardHeight + 3);
+    pdf.setFillColor(...mint); pdf.roundedRect(x, cardY, cardWidth, cardHeight, 2.5, 2.5, "F");
+    pdf.setTextColor(...muted); pdf.setFont("helvetica", "bold"); pdf.setFontSize(6.4); pdf.text(label, x + 5, cardY + 7);
+    pdf.setTextColor(...ink); pdf.setFontSize(8.5); pdf.setFont("helvetica", "bold");
+    pdf.text(pdf.splitTextToSize(value || "Not recorded", cardWidth - 10), x + 5, cardY + 15);
   });
-  y += 31;
+  y += cardHeight * 2 + 11;
 
   const addSection = (title: string, body: string, accent = false) => {
     const lines = pdf.splitTextToSize(body || "Not recorded.", usable - 16);
