@@ -61,7 +61,7 @@ export async function GET() {
         ORDER BY e.encounter_date DESC
       `).bind(actor.id, actor.email).all(),
       db.prepare(`
-        SELECT pp.id, pp.user_id AS userId, u.full_name AS name, pp.specialty, pp.credentials, u.clinic_city AS clinicCity
+        SELECT pp.id, pp.user_id AS userId, u.full_name AS name, pp.specialty, pp.credentials, '' AS clinicCity
         FROM practitioner_profiles pp JOIN users u ON u.id = pp.user_id
         ORDER BY u.full_name
       `).all(),
