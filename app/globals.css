@@ -574,14 +574,21 @@ th { font-size: 10px; letter-spacing: .075em; }
   display: block;
   object-fit: contain;
 }
-.project-logo.compact { width: 205px; max-height: 72px; }
-.project-logo.light { filter: drop-shadow(0 2px 8px rgba(0,0,0,.2)); }
+.project-logo.compact { width: 220px; max-height: 78px; }
+.project-logo.light {
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.32);
+  border-radius: 15px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 10px 28px rgba(0,34,25,.2);
+}
 .auth-story .auth-brand { align-items: flex-start; flex-direction: column; gap: 22px; }
-.auth-story .project-logo { width: clamp(330px, 29vw, 500px); }
+.auth-story .project-logo { width: clamp(390px, 31vw, 540px); padding: 14px 19px; border-radius: 18px; }
 .login-mark .project-logo { width: min(360px, 100%); }
 .workspace-header .auth-brand { gap: 20px; }
 .workspace-header .project-logo { width: 220px; }
-.brand .project-logo { width: 210px; max-height: 82px; margin-inline: auto; }
+.brand .project-logo { width: 222px; max-height: 84px; margin-inline: auto; }
 .mobile-brand .project-logo { width: 158px; max-height: 48px; }
 .report-logo-row img { width: 100%; max-width: 150px; max-height: 54px; object-fit: contain; }
 .report-logo-row img:first-child { max-width: 210px; }
