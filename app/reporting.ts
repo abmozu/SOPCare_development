@@ -137,9 +137,11 @@ export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: Pdf
     <section class="pdf-section accent"><h2>Diagnosis</h2><p>${reportText(encounter.diagnosis || "No diagnosis recorded.")}</p></section>
     <section class="pdf-section accent"><h2>Reason for visit</h2><p>${reportText(encounter.reason || "Not recorded.")}</p></section>
     <section class="pdf-section"><h2>Clinical history</h2><div class="clinical-copy">${reportRichText(encounter.plan) || "<p>No clinical history recorded.</p>"}</div></section>`;
-  root.style.position = "fixed";
-  root.style.left = "-10000px";
+  root.style.position = "absolute";
+  root.style.left = "0";
   root.style.top = "0";
+  root.style.zIndex = "-2147483647";
+  root.style.pointerEvents = "none";
   document.body.appendChild(root);
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   try {
