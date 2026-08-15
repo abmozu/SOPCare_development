@@ -249,6 +249,14 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     }
   }
 
+  async function handleTask(task: ClinicalTask) {
+    if (task.taskType === "handover" && task.handoverId) {
+      await apiAction(`/api/handovers/${task.handoverId}/accept`, { method: "POST", body: "{}" }, "Care handover accepted");
+      return;
+    }
+    if (task.injuryId) showInjury(task.injuryId);
+  }
+
   async function submitAthlete(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -436,7 +444,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
         <div className="prototype-banner"><span>Prototype environment</span> Do not enter real patient information.</div>
 
         <main className="content">
-          {view === "Overview" && <Overview data={data} today={today} onSearch={(value) => { captureScroll(); setQuery(value); setView("Athletes"); }} onInjuries={() => navigate("Injuries")} />}
+          {view === "Overview" && <Overview data={data} today={today} onSearch={(value) => { captureScroll(); setQuery(value); setView("Athletes"); }} onInjuries={() => navigate("Injuries")} onTask={handleTask} />}
           {view === "Athletes" && <AthletesView athletes={filtered} all={data.athletes} query={query} setQuery={setQuery} sportFilter={sportFilter} setSportFilter={setSportFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onAthlete={showProfile} />}
           {view === "Injuries" && <InjuriesView injuries={data.injuries} onOpen={showInjury} />}
           {view === "InjuryDetail" && selectedInjury && <InjuryDetailView injury={selectedInjury} rehabilitationPlan={data.rehabilitationPlans.find((plan) => plan.injuryId === selectedInjury.id)} history={data.injuryHistory.filter((item) => item.injuryId === selectedInjury.id)} encounters={data.encounters.filter((item) => item.injuryId === selectedInjury.id)} expandedEncounters={expandedLinkedEncounters[selectedInjury.id] ?? []} onExpandedEncountersChange={(ids) => setExpandedLinkedEncounters((current) => ({ ...current, [selectedInjury.id]: ids }))} backLabel={returnToEncounterId ? "Back to encounter" : injuryOriginAthleteId ? "Back to all injuries" : "Injury registry"} onBack={returnToEncounterId ? returnToEncounter : injuryOriginAthleteId ? () => { const athleteId = injuryOriginAthleteId; setInjuryOriginAthleteId(null); setSelectedId(athleteId); setView("AthleteInjuries"); } : () => navigate("Injuries")} onAthlete={showProfile} onEncounter={openEncounterFromInjury} onStage={() => setModal("injuryStage")} onRehabilitation={showRehabilitation} onCreateRehabilitation={() => setModal("rehabilitation")} />}
@@ -477,7 +485,7 @@ function PageHeading({ eyebrow, title, text, action }: { eyebrow: string; title:
   return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{text}</p></div>{action}</div>;
 }
 
-function Overview({ data, today, onSearch, onInjuries }: { data: Bootstrap; today: string; onSearch: (value: string) => void; onInjuries: () => void }) {
+function Overview({ data, today, onSearch, onInjuries, onTask }: { data: Bootstrap; today: string; onSearch: (value: string) => void; onInjuries: () => void; onTask: (task: ClinicalTask) => void }) {
   return <>
     <PageHeading eyebrow={today} title={`Good morning, ${data.actor.name.split(" ").slice(-1)[0]}`} text="Find an athlete and continue their multidisciplinary care." />
     <section className="hero-card">
@@ -489,6 +497,7 @@ function Overview({ data, today, onSearch, onInjuries }: { data: Bootstrap; toda
         <button onClick={onInjuries}><span className="board-index watch">03</span><div><strong>{data.stats.openInjuries} open injury episodes</strong><small>{data.stats.rtsReviews} awaiting return-to-sport review</small></div><b>›</b></button>
       </div>
     </section>
+    <section className="panel task-board"><div className="panel-head"><div><span className="section-kicker">Clinical inbox</span><h3>My actions</h3></div><span className="result-count">{data.tasks.length} open</span></div>{data.tasks.length ? <div className="task-list">{data.tasks.map((task) => <article key={task.id}><span>{task.taskType === "return_to_play" ? "✓" : "→"}</span><div><strong>{task.title}</strong><p>{task.detail}</p><small>{shortDate(task.createdAt)}</small></div><button className={task.taskType === "handover" ? "button primary small" : "button secondary small"} onClick={() => onTask(task)}>{task.taskType === "handover" ? "Accept care" : "Review"}</button></article>)}</div> : <div className="empty-state compact-empty"><h3>No open clinical tasks</h3><p>Approvals, handovers, and return-to-play decisions assigned to you appear here.</p></div>}</section>
   </>;
 }
 
@@ -589,7 +598,6 @@ function InjuriesView({ injuries, onOpen }: { injuries: Injury[]; onOpen: (id: s
     <section className="panel registry-panel"><div className="registry-tools injury-registry-tools"><div className="injury-registry-mode" role="group" aria-label="Injury registry view"><button className={!isPrevious ? "active" : ""} onClick={() => { setMode("current"); setAthleteFilter("All athletes"); }}>Current injuries</button><button className={isPrevious ? "active" : ""} onClick={() => { setMode("previous"); setStageFilter("All current stages"); }}>Previous injuries</button></div>{isPrevious ? <><label className="table-search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search athlete, MRN, or injury" aria-label="Search previous injuries" /></label><select value={athleteFilter} onChange={(event) => setAthleteFilter(event.target.value)} aria-label="Choose athlete for previous injuries"><option value="All athletes">All athletes</option>{athletes.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></> : <div className="stage-filters" role="group" aria-label="Filter current injury stages">{["All current stages", "Under Assessment", "Under Treatment", "Modified Training", "Return-to-Sport Review"].map((stage) => <button key={stage} className={stageFilter === stage ? "active" : ""} onClick={() => setStageFilter(stage)}>{stage}</button>)}</div>}<span className="result-count">{shown.length} episodes</span></div>
       {shown.length ? isPrevious && athleteFilter !== "All athletes" ? <InjuryTimeline injuries={shown} onOpen={onOpen} label="Previous injuries timeline" /> : <div className="table-wrap"><table className="injury-table"><thead><tr><th>Athlete</th><th>Injury</th><th>Stage</th><th>Participation</th><th>Days open</th><th>{isPrevious ? "Closed" : "Next review"}</th><th>Lead</th><th /></tr></thead><tbody>{shown.map((injury) => <tr key={injury.id} onClick={() => onOpen(injury.id)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") onOpen(injury.id); }}><td><div className="athlete-cell"><Avatar name={injury.athleteName} /><span><strong>{injury.athleteName}</strong><small>{injury.mrn} · {injury.sport}</small></span></div></td><td><strong>{injury.title}</strong><small className="cell-sub">{injury.bodyArea} · {injury.diagnosisStatus}</small></td><td><Status value={injury.stage} /></td><td>{injury.participationStatus}</td><td><strong>{daysOpen(injury)}</strong> days</td><td>{shortDate(isPrevious ? injury.closedAt : injury.reviewDate)}</td><td>{injury.leadPractitioner}</td><td><button className="row-menu" aria-label={`Open ${injury.title}`}>›</button></td></tr>)}</tbody></table></div> : <div className="empty-state"><span>✓</span><h3>{isPrevious ? "No previous injuries found" : "No current injuries found"}</h3><p>{isPrevious ? "Try another athlete or search term." : "Current injury episodes will appear here."}</p></div>}
     </section>
-    <section className="panel task-board"><div className="panel-head"><div><span className="section-kicker">My clinical tasks</span><h3>Actions that need you</h3></div><span className="result-count">{data.tasks.length} open</span></div>{data.tasks.length ? <div className="task-list">{data.tasks.map((task) => <article key={task.id}><span>{task.taskType === "return_to_play" ? "✓" : "→"}</span><div><strong>{task.title}</strong><p>{task.detail}</p><small>{shortDate(task.createdAt)}</small></div></article>)}</div> : <div className="empty-state compact-empty"><h3>No open clinical tasks</h3><p>Decisions, handovers, and reviews assigned to you will appear here.</p></div>}</section>
   </>;
 }
 
