@@ -52,9 +52,17 @@ export async function POST(request: Request) {
       db.prepare(`INSERT INTO rehabilitation_plans (id, injury_id, owner_practitioner_id, title, status, start_date, target_date, current_phase, overall_progress, weekly_frequency, primary_goal, precautions, next_review_date, created_at, updated_at)
         VALUES (?, ?, ?, ?, 'Active', ?, ?, 1, 0, ?, ?, ?, ?, ?, ?)`)
         .bind(id, injuryId, practitioner.id, title, startDate, targetDate, weeklyFrequency, primaryGoal, precautions, nextReviewDate, now, now),
-      ...phaseTemplates.map((phase, index) => db.prepare(`INSERT INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress, started_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`)
-        .bind(crypto.randomUUID(), id, index + 1, phase.title, index === 0 ? "Active" : "Locked", phase.goals, phase.entry, phase.exit, index === 0 ? now : null, now, now)),
+      ...phaseTemplates.flatMap((phase, index) => {
+        const phaseId = crypto.randomUUID();
+        return [
+          db.prepare(`INSERT INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress, started_at, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`)
+            .bind(phaseId, id, index + 1, phase.title, index === 0 ? "Active" : "Locked", phase.goals, phase.entry, phase.exit, index === 0 ? now : null, now, now),
+          db.prepare(`INSERT INTO rehabilitation_exercises (id, phase_id, name, dosage, target, status, sort_order)
+            VALUES (?, ?, ?, ?, ?, 'Active', 1)`)
+            .bind(crypto.randomUUID(), phaseId, "Exit criteria achieved", "Clinical milestone", phase.exit),
+        ];
+      }),
     ];
     await db.batch(statements);
     await writeAudit(actor.id, "CREATED", "rehabilitation_plan", id, `Rehabilitation plan opened for ${injury.firstName} ${injury.lastName}: ${title}`);

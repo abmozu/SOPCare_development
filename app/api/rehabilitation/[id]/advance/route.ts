@@ -28,7 +28,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const phaseRows = phases.results as Array<{ id: string; phaseNumber: number; title: string; progress: number }>;
     const current = phaseRows.find((phase) => phase.phaseNumber === plan.currentPhase);
     if (!current) return Response.json({ error: "Current phase not found." }, { status: 404 });
-    if (current.progress < 80) return Response.json({ error: "Current phase progress must reach at least 80% before advancement." }, { status: 400 });
+    if (current.progress < 100) return Response.json({ error: "Complete all current phase milestones before moving to the next phase." }, { status: 400 });
 
     const next = phaseRows.find((phase) => phase.phaseNumber === plan.currentPhase + 1);
     const now = new Date().toISOString();
