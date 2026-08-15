@@ -82,6 +82,11 @@ function reportAge(dateOfBirth: string, visitDate: string) {
   return Math.max(0, years);
 }
 
+function reportDate(value: string) {
+  if (!value) return "Not recorded";
+  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
 function reportText(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character] ?? character);
 }
@@ -134,7 +139,9 @@ export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: Pdf
     <section class="pdf-info"><div class="pdf-info-head">Athlete and visit information</div><div class="pdf-info-grid">
       <div><small>Visit date</small><strong>${visitDate}</strong></div>
       <div><small>Athlete name</small><strong>${reportText(`${athlete.firstName} ${athlete.lastName}`)}</strong></div>
+      <div><small>Date of birth</small><strong>${reportText(reportDate(athlete.dateOfBirth))}</strong></div>
       <div><small>Age</small><strong>${reportAge(athlete.dateOfBirth, encounter.encounterDate)} years</strong></div>
+      <div><small>Medical record number</small><strong>${reportText(athlete.mrn)}</strong></div>
       <div><small>Sport</small><strong>${reportText(`${athlete.sport}${athlete.discipline ? ` - ${athlete.discipline}` : ""}`)}</strong></div>
       <div><small>Clinic city</small><strong>${reportText(encounter.clinicCity || "Not recorded")}</strong></div>
       <div><small>Reporter name</small><strong>${reportText(encounter.practitioner)}</strong></div>
@@ -229,16 +236,18 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
   const info = [
     ["VISIT DATE", visitDate],
     ["ATHLETE NAME", `${athlete.firstName} ${athlete.lastName}`],
+    ["DATE OF BIRTH", reportDate(athlete.dateOfBirth)],
     ["AGE", `${reportAge(athlete.dateOfBirth, encounter.encounterDate)} years`],
+    ["MEDICAL RECORD NUMBER", athlete.mrn],
     ["SPORT / DISCIPLINE", `${athlete.sport}${athlete.discipline ? ` / ${athlete.discipline}` : ""}`],
     ["CLINIC CITY", encounter.clinicCity || "Not recorded"],
     ["REPORTER NAME", encounter.practitioner || "Not recorded"],
   ];
-  const cardWidth = (usable - 6) / 3;
+  const cardWidth = (usable - 3) / 2;
   const cardHeight = 23;
   info.forEach(([label, value], index) => {
-    const column = index % 3;
-    const row = Math.floor(index / 3);
+    const column = index % 2;
+    const row = Math.floor(index / 2);
     const x = margin + column * (cardWidth + 3);
     const cardY = y + row * (cardHeight + 3);
     pdf.setFillColor(...mint); pdf.roundedRect(x, cardY, cardWidth, cardHeight, 2.5, 2.5, "F");
@@ -246,7 +255,7 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
     pdf.setTextColor(...ink); pdf.setFontSize(8.5); pdf.setFont("helvetica", "bold");
     pdf.text(pdf.splitTextToSize(value || "Not recorded", cardWidth - 10), x + 5, cardY + 15);
   });
-  y += cardHeight * 2 + 11;
+  y += cardHeight * 4 + 17;
 
   const addSection = (title: string, body: string, accent = false) => {
     const lines = pdf.splitTextToSize(body || "Not recorded.", usable - 16);
