@@ -598,7 +598,7 @@ th { font-size: 10px; letter-spacing: .075em; }
   display: block;
   overflow: hidden;
   color: transparent;
-  background: url("/branding/sopcare-logo.png") center / contain no-repeat;
+  background: url("/branding/sopcare-logo-v2.png") center / contain no-repeat;
 }
 .report-print-template footer span:first-child { font-size: 0; }
 .report-print-template footer span:first-child::after { content: "SOPCare · Saudi Olympic and Paralympic Care"; font-size: 8px; }
