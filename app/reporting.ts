@@ -97,6 +97,7 @@ function reportRichText(value: string) {
 
 export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: PdfAthlete) {
   const { jsPDF } = await import("jspdf");
+  const { default: html2canvas } = await import("html2canvas");
   const settings = await fetchReportSettings();
   const resolveAsset = async (source: string) => {
     if (!source || source.startsWith("data:")) return source;
@@ -145,7 +146,25 @@ export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: Pdf
   document.body.appendChild(root);
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   try {
-    await pdf.html(root, { x: 0, y: 0, width: 210, windowWidth: 794, autoPaging: "text", html2canvas: { scale: 1, useCORS: true, backgroundColor: "#ffffff" } });
+    await document.fonts.ready;
+    await Promise.all([...root.querySelectorAll("img")].map((image) => image.complete
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => { image.onload = () => resolve(); image.onerror = () => resolve(); })));
+    const canvas = await html2canvas(root, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+    const pageWidthMm = 210;
+    const contentHeightMm = 278;
+    const sliceHeightPx = Math.floor(canvas.width * contentHeightMm / pageWidthMm);
+    const totalPages = Math.max(1, Math.ceil(canvas.height / sliceHeightPx));
+    for (let index = 0; index < totalPages; index++) {
+      if (index > 0) pdf.addPage();
+      const sourceY = index * sliceHeightPx;
+      const sourceHeight = Math.min(sliceHeightPx, canvas.height - sourceY);
+      const pageCanvas = document.createElement("canvas");
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sourceHeight;
+      pageCanvas.getContext("2d")?.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+      pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.96), "JPEG", 0, 0, pageWidthMm, sourceHeight * pageWidthMm / canvas.width, undefined, "FAST");
+    }
     const pages = pdf.getNumberOfPages();
     for (let page = 1; page <= pages; page++) {
       pdf.setPage(page); pdf.setDrawColor(219, 229, 223); pdf.line(16, 286, 194, 286);
