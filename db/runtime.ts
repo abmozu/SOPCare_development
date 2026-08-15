@@ -1,5 +1,6 @@
 import { getPostgres } from "./postgres";
 import { getSotcAthletes } from "./sotc-athletes";
+import { getSotcBirthdates } from "./sotc-birthdates";
 import { env } from "cloudflare:workers";
 
 const seedStatements = [
@@ -143,7 +144,7 @@ function rosterId(value: string) {
 async function ensureSotcRoster(db: ReturnType<typeof getD1>) {
   const roster = await getSotcAthletes();
   const imported = await db.prepare("SELECT COUNT(*) AS count FROM athletes WHERE mrn LIKE 'SOTC-%'").first<{ count: number }>();
-  if ((imported?.count ?? 0) >= roster.length) return;
+  if ((imported?.count ?? 0) < roster.length) {
 
   const existingSports = await db.prepare("SELECT id, name FROM sports").all<{ id: string; name: string }>();
   const sportIds = new Map(existingSports.results.map((sport) => [sport.name, sport.id]));
@@ -163,7 +164,19 @@ async function ensureSotcRoster(db: ReturnType<typeof getD1>) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (mrn) DO NOTHING`)
       .bind(`sotc-ath-${String(index + 1).padStart(3, "0")}`, `SOTC-${String(index + 1).padStart(3, "0")}`, firstName, lastName, "", "Not recorded", resolvedSportIds.get(sport), suppliedDiscipline || "Not recorded", "Not recorded", "Available", "None recorded", "Not recorded", accents[index % accents.length]);
   });
-  for (let start = 0; start < statements.length; start += 50) await db.batch(statements.slice(start, start + 50));
+    for (let start = 0; start < statements.length; start += 50) await db.batch(statements.slice(start, start + 50));
+  }
+
+  const birthdateImportId = "sotc-birthdates-2026-08-15";
+  const birthdatesImported = await db.prepare("SELECT id FROM report_settings WHERE id = ?").bind(birthdateImportId).first<{ id: string }>();
+  if (!birthdatesImported) {
+    const birthdateByName = new Map(await getSotcBirthdates());
+    const updates = roster.map(([name], index) => db.prepare("UPDATE athletes SET date_of_birth = ?, updated_at = CURRENT_TIMESTAMP::text WHERE mrn = ?")
+      .bind(birthdateByName.get(name) ?? "", `SOTC-${String(index + 1).padStart(3, "0")}`));
+    for (let start = 0; start < updates.length; start += 50) await db.batch(updates.slice(start, start + 50));
+    await db.prepare("INSERT INTO report_settings (id, settings_json, updated_by, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP::text)")
+      .bind(birthdateImportId, JSON.stringify({ athleteCount: roster.length }), "system-import").run();
+  }
 }
 
 export async function ensureDatabase() {
