@@ -96,6 +96,10 @@ function reportRichText(value: string) {
 }
 
 export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: PdfAthlete) {
+  // Direct PDF drawing is intentionally the production path. Browser DOM capture
+  // is unreliable in embedded and standard Chrome contexts and can yield blank pages.
+  return downloadEncounterPdfLegacy(encounter, athlete);
+  /* c8 ignore start -- retained while the report-template editor is migrated. */
   const { jsPDF } = await import("jspdf");
   const { default: html2canvas } = await import("html2canvas");
   const settings = await fetchReportSettings();
@@ -176,6 +180,7 @@ export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: Pdf
   } finally {
     root.remove();
   }
+  /* c8 ignore stop */
 }
 
 async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfAthlete) {
