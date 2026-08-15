@@ -570,25 +570,11 @@ th { font-size: 10px; letter-spacing: .075em; }
 
 .project-logo {
   width: clamp(290px, 21vw, 410px);
-  display: inline-grid;
-  line-height: 1;
-}
-.project-logo-art { width: 100%; display: block; }
-.project-logo-art img { width: 100%; height: auto; display: block; object-fit: contain; }
-.project-logo.compact { width: 220px; }
-.project-logo.compact .project-logo-art { height: 58px; overflow: hidden; }
-.project-logo.compact .project-logo-art img { transform: translateY(-2px) scale(1.035); transform-origin: top center; }
-.project-logo.compact small {
-  margin-top: -4px;
+  height: auto;
   display: block;
-  color: #0a4e3f;
-  font-size: 11px;
-  font-weight: 750;
-  line-height: 1.25;
-  letter-spacing: .015em;
-  text-align: center;
-  white-space: nowrap;
+  object-fit: contain;
 }
+.project-logo.compact { width: 220px; max-height: 78px; }
 .project-logo.light {
   box-sizing: border-box;
   padding: 10px 14px;
@@ -602,10 +588,8 @@ th { font-size: 10px; letter-spacing: .075em; }
 .login-mark .project-logo { width: min(360px, 100%); }
 .workspace-header .auth-brand { gap: 20px; }
 .workspace-header .project-logo { width: 220px; }
-.brand .project-logo { width: 222px; margin-inline: auto; }
-.mobile-brand .project-logo { width: 168px; }
-.mobile-brand .project-logo.compact .project-logo-art { height: 43px; }
-.mobile-brand .project-logo.compact small { margin-top: -3px; font-size: 8px; }
+.brand .project-logo { width: 222px; max-height: 84px; margin-inline: auto; }
+.mobile-brand .project-logo { width: 158px; max-height: 48px; }
 .report-logo-row img { width: 100%; max-width: 150px; max-height: 54px; object-fit: contain; }
 .report-logo-row img:first-child { max-width: 210px; }
 .report-print-template .report-logo-row strong {
