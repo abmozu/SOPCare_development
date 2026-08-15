@@ -23,12 +23,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const loadScore = score(payload.loadScore);
     const painPre = score(payload.painPre);
     const painPost = score(payload.painPost);
-    const milestoneIds = Array.isArray(payload.milestoneIds) ? payload.milestoneIds.map((value) => cleanText(value, 80)).filter(Boolean) : cleanText(payload.milestoneIds, 80) ? [cleanText(payload.milestoneIds, 80)] : [];
+    const phaseProgress = score(payload.phaseProgress, 100);
     if (!sessionDate || !sessionType || !nextAction) {
       return Response.json({ error: "Session date, type, and next action are required." }, { status: 400 });
     }
-    if (status === "Completed" && (loadScore === null || painPre === null || painPost === null)) {
-      return Response.json({ error: "Completed sessions require load and pain scores." }, { status: 400 });
+    if (status === "Completed" && (loadScore === null || painPre === null || painPost === null || phaseProgress === null)) {
+      return Response.json({ error: "Completed sessions require load, pain, and progress scores." }, { status: 400 });
     }
 
     const db = await ensureDatabase();
@@ -48,14 +48,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const statements = [
       db.prepare(`INSERT INTO rehabilitation_sessions (id, plan_id, phase_id, practitioner_id, session_date, session_type, status, load_score, pain_pre, pain_post, phase_progress, notes, next_action, completed_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .bind(sessionId, id, phase.id, practitionerId, sessionDate, sessionType, status, loadScore, painPre, painPost, null, notes, nextAction, status === "Completed" ? now : null, now, now),
+        .bind(sessionId, id, phase.id, practitionerId, sessionDate, sessionType, status, loadScore, painPre, painPost, phaseProgress, notes, nextAction, status === "Completed" ? now : null, now, now),
     ];
-    if (status === "Completed") {
-      if (milestoneIds.length) statements.push(db.prepare(`UPDATE rehabilitation_exercises SET status = 'Complete' WHERE phase_id = ? AND id IN (${milestoneIds.map(() => "?").join(",")})`).bind(phase.id, ...milestoneIds));
-      const milestones = await db.prepare("SELECT id, status FROM rehabilitation_exercises WHERE phase_id = ?").bind(phase.id).all<{ id: string; status: string }>();
-      const milestoneRows = milestones.results ?? [];
-      const completedMilestones = milestoneRows.filter((item) => item.status === "Complete" || milestoneIds.includes(item.id)).length;
-      const phaseProgress = milestoneRows.length > 0 ? Math.round((completedMilestones * 100) / milestoneRows.length) : 0;
+    if (status === "Completed" && phaseProgress !== null) {
       const overallProgress = Math.round((((plan.currentPhase - 1) * 100) + phaseProgress) / Math.max(1, phaseCount?.count ?? 1));
       statements.push(db.prepare("UPDATE rehabilitation_phases SET progress = ?, updated_at = ? WHERE id = ?").bind(phaseProgress, now, phase.id));
       statements.push(db.prepare("UPDATE rehabilitation_plans SET overall_progress = ?, updated_at = ? WHERE id = ?").bind(overallProgress, now, id));
