@@ -11,7 +11,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!toUserId || !summary || toUserId === actor.id) return Response.json({ error: "Choose another practitioner and provide a clinical handover summary." }, { status: 400 });
     const db = await ensureDatabase();
     const injury = await db.prepare("SELECT title FROM injury_episodes WHERE id = ? AND stage <> 'Closed'").bind(id).first<{ title: string }>();
-    const recipient = await db.prepare("SELECT id, full_name AS name FROM users WHERE id = ? AND status = 'Active'").bind(toUserId).first<{ id: string; name: string }>();
+    const recipient = await db.prepare("SELECT id, full_name AS name FROM users WHERE id = ?").bind(toUserId).first<{ id: string; name: string }>();
     if (!injury || !recipient) return Response.json({ error: "The injury or receiving practitioner is unavailable." }, { status: 404 });
     const plan = await db.prepare("SELECT id FROM rehabilitation_plans WHERE injury_id = ? AND status IN ('Active', 'Awaiting medical clearance') ORDER BY updated_at DESC LIMIT 1").bind(id).first<{ id: string }>();
     const now = new Date().toISOString(); const handoverId = crypto.randomUUID();

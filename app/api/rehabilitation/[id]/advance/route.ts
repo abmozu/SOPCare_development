@@ -43,7 +43,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       statements.push(db.prepare("UPDATE injury_episodes SET stage = 'Return-to-Sport Review', participation_status = 'Return-to-Sport Review', next_action = 'Medical return-to-play decision required', closure_summary = ?, updated_at = ? WHERE id = ?").bind(clearanceSummary, now, plan.injuryId));
       statements.push(db.prepare("INSERT INTO injury_status_history (id, injury_id, from_stage, to_stage, note, changed_by, created_at) VALUES (?, ?, ?, 'Return-to-Sport Review', ?, ?, ?)")
         .bind(crypto.randomUUID(), plan.injuryId, plan.injuryStage, clearanceSummary, actor.id, now));
-      const physicians = await db.prepare("SELECT id FROM users WHERE professional_role ILIKE '%physician%' AND status = 'Active'").all<{ id: string }>();
+      const physicians = await db.prepare(`
+        SELECT DISTINCT u.id
+        FROM users u
+        JOIN practitioner_profiles pp ON pp.user_id = u.id
+        WHERE pp.specialty ILIKE '%medicine%' OR pp.specialty ILIKE '%physician%'
+      `).all<{ id: string }>();
       for (const physician of physicians.results) statements.push(db.prepare("INSERT INTO clinical_tasks (id, recipient_user_id, task_type, title, detail, injury_id, plan_id, status, created_at) VALUES (?, ?, 'return_to_play', ?, ?, ?, ?, 'Open', ?)")
         .bind(crypto.randomUUID(), physician.id, "Return-to-play decision required", `${plan.title} has completed rehabilitation and awaits your medical decision.`, plan.injuryId, id, now));
     }
