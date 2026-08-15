@@ -67,14 +67,97 @@ export async function persistReportSettings(settings: ReportSettings) {
 }
 
 type PdfEncounter = { id: string; encounterDate: string; encounterType: string; clinicCity: string; reason: string; diagnosis: string; plan: string; subjective: string; objective: string; assessment: string; practitioner: string; specialty: string };
-type PdfAthlete = { mrn: string; firstName: string; lastName: string; sport: string; discipline: string };
+type PdfAthlete = { mrn: string; firstName: string; lastName: string; dateOfBirth: string; sport: string; discipline: string };
 
 function plainText(html: string) {
   const document = new DOMParser().parseFromString(html || "", "text/html");
   return (document.body.textContent || "").replace(/\s+/g, " ").trim();
 }
 
+function reportAge(dateOfBirth: string, visitDate: string) {
+  const birth = new Date(`${dateOfBirth}T00:00:00`);
+  const visit = new Date(visitDate);
+  let years = visit.getFullYear() - birth.getFullYear();
+  if (visit.getMonth() < birth.getMonth() || (visit.getMonth() === birth.getMonth() && visit.getDate() < birth.getDate())) years -= 1;
+  return Math.max(0, years);
+}
+
+function reportText(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character] ?? character);
+}
+
+function reportRichText(value: string) {
+  const parsed = new DOMParser().parseFromString(value || "", "text/html");
+  parsed.querySelectorAll("script,style,iframe,object,embed,form,input,button").forEach((node) => node.remove());
+  parsed.body.querySelectorAll("*").forEach((node) => [...node.attributes].forEach((attribute) => {
+    if (attribute.name.startsWith("on") || !["style"].includes(attribute.name)) node.removeAttribute(attribute.name);
+  }));
+  return parsed.body.innerHTML;
+}
+
 export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: PdfAthlete) {
+  const { jsPDF } = await import("jspdf");
+  const settings = await fetchReportSettings();
+  const resolveAsset = async (source: string) => {
+    if (!source || source.startsWith("data:")) return source;
+    const blob = await fetch(source).then((response) => response.blob());
+    return await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob); });
+  };
+  const [primaryLogo, secondaryLogo, sopcareLogo] = await Promise.all([
+    resolveAsset(settings.primaryLogo), resolveAsset(settings.secondaryLogo), resolveAsset("/branding/sopcare-logo-v2.png"),
+  ]);
+  const slots: Record<ReportAssetPosition, string[]> = { left: [], center: [], right: [] };
+  if (primaryLogo) slots[settings.primaryLogoPosition].push(primaryLogo);
+  if (secondaryLogo) slots[settings.secondaryLogoPosition].push(secondaryLogo);
+  const visitDate = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Riyadh" }).format(new Date(encounter.encounterDate));
+  const root = document.createElement("section");
+  root.className = "pdf-report-source";
+  root.innerHTML = `
+    <style>
+      .pdf-report-source{box-sizing:border-box;width:794px;padding:54px 62px 72px;color:#172d25;background:#fff;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.62}
+      .pdf-logo-row{min-height:72px;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:18px}.pdf-logo-slot{min-width:0;display:flex;align-items:center;gap:12px}.pdf-logo-slot.center{justify-content:center}.pdf-logo-slot.right{justify-content:flex-end}.pdf-logo-slot img{max-width:150px;max-height:66px;object-fit:contain}.pdf-brand{text-align:center}.pdf-brand img{width:310px;max-height:122px;object-fit:contain}.pdf-rule{height:4px;margin:18px 0 24px;border:0;background:linear-gradient(90deg,#087052 0 72%,#c8a45d 72%)}
+      .pdf-title{text-align:center}.pdf-title h1{margin:0;color:#073b32;font-size:27px;line-height:1.15}.pdf-title p{margin:7px 0 22px;color:#6c7c75;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+      .pdf-info{overflow:hidden;border:1px solid #d9e5df;border-radius:12px}.pdf-info-head{padding:11px 16px;color:#fff;background:#073b32;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.pdf-info-grid{display:grid;grid-template-columns:1fr 1fr}.pdf-info-grid div{padding:13px 16px;border-bottom:1px solid #e5ece8}.pdf-info-grid div:nth-child(odd){border-right:1px solid #e5ece8}.pdf-info-grid div:nth-last-child(-n+2){border-bottom:0}.pdf-info small{display:block;margin-bottom:4px;color:#708078;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.pdf-info strong{color:#173a2f;font-size:13px}
+      .pdf-section{margin-top:20px;break-inside:auto}.pdf-section h2{margin:0 0 9px;padding-bottom:7px;color:#124d3a;border-bottom:2px solid #b99850;font-size:16px;letter-spacing:.035em;text-transform:uppercase}.pdf-section p{margin:0;white-space:pre-wrap}.pdf-section.accent{padding:14px 16px;border-left:4px solid #c8a45d;border-radius:7px;background:#faf8f1}.pdf-section.accent h2{padding:0;border:0;font-size:11px}.clinical-copy{font-size:14px;line-height:1.68}.clinical-copy p{margin:0 0 11px}.clinical-copy h1,.clinical-copy h2,.clinical-copy h3{margin:18px 0 8px;color:#174c3b}.clinical-copy ul,.clinical-copy ol{margin:7px 0 12px;padding-left:25px}.clinical-copy li{margin:3px 0}.clinical-copy strong,.clinical-copy b{font-weight:800}.clinical-copy em,.clinical-copy i{font-style:italic}.clinical-copy u{text-underline-offset:2px}
+    </style>
+    <div class="pdf-logo-row">
+      ${(["left", "center", "right"] as ReportAssetPosition[]).map((position) => `<div class="pdf-logo-slot ${position}">${slots[position].map((source) => `<img src="${source}" alt="" />`).join("")}</div>`).join("")}
+    </div>
+    <div class="pdf-brand"><img src="${sopcareLogo}" alt="SOPCare" /></div>
+    <div class="pdf-rule"></div>
+    <div class="pdf-title"><h1>${reportText(settings.reportTitle || "Medical Report")}</h1><p>${reportText(settings.organizationName)}</p></div>
+    <section class="pdf-info"><div class="pdf-info-head">Athlete and visit information</div><div class="pdf-info-grid">
+      <div><small>Visit date</small><strong>${visitDate}</strong></div>
+      <div><small>Athlete name</small><strong>${reportText(`${athlete.firstName} ${athlete.lastName}`)}</strong></div>
+      <div><small>Age</small><strong>${reportAge(athlete.dateOfBirth, encounter.encounterDate)} years</strong></div>
+      <div><small>Sport</small><strong>${reportText(`${athlete.sport}${athlete.discipline ? ` - ${athlete.discipline}` : ""}`)}</strong></div>
+      <div><small>Clinic city</small><strong>${reportText(encounter.clinicCity || "Not recorded")}</strong></div>
+      <div><small>Reporter name</small><strong>${reportText(encounter.practitioner)}</strong></div>
+    </div></section>
+    <section class="pdf-section accent"><h2>Diagnosis</h2><p>${reportText(encounter.diagnosis || "No diagnosis recorded.")}</p></section>
+    <section class="pdf-section accent"><h2>Reason for visit</h2><p>${reportText(encounter.reason || "Not recorded.")}</p></section>
+    <section class="pdf-section"><h2>Clinical history</h2><div class="clinical-copy">${reportRichText(encounter.plan) || "<p>No clinical history recorded.</p>"}</div></section>`;
+  root.style.position = "fixed";
+  root.style.left = "-10000px";
+  root.style.top = "0";
+  document.body.appendChild(root);
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  try {
+    await pdf.html(root, { x: 0, y: 0, width: 210, windowWidth: 794, autoPaging: "text", html2canvas: { scale: 1, useCORS: true, backgroundColor: "#ffffff" } });
+    const pages = pdf.getNumberOfPages();
+    for (let page = 1; page <= pages; page++) {
+      pdf.setPage(page); pdf.setDrawColor(219, 229, 223); pdf.line(16, 286, 194, 286);
+      pdf.setTextColor(103, 119, 112); pdf.setFont("helvetica", "normal"); pdf.setFontSize(7);
+      pdf.text("SOPCare - Saudi Olympic and Paralympic Care", 16, 291);
+      pdf.text(`Page ${page} of ${pages}`, 194, 291, { align: "right" });
+    }
+    pdf.save(`SOPCare-${athlete.mrn}-${encounter.id}.pdf`);
+  } finally {
+    root.remove();
+  }
+}
+
+async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfAthlete) {
   const { jsPDF } = await import("jspdf");
   const settings = await fetchReportSettings();
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });

@@ -510,6 +510,24 @@ th { font-size: 10px; letter-spacing: .075em; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+/* Keep report branding clear of the separator in the administration preview. */
+.report-preview-sheet header {
+  min-height: 78px;
+  padding-bottom: 14px;
+  grid-template-columns: 110px 1fr 110px;
+  gap: 16px;
+  border-bottom: 0;
+  position: relative;
+}
+.report-preview-sheet header::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--green) 0 72%, #c8a45d 72%);
+}
+.report-preview-sheet .preview-brand { height: 58px; padding: 4px; box-sizing: border-box; background: #fff; }
+
 /* Responsive sign-in scale and clearer institutional branding. */
 .auth-panel { padding: clamp(26px, 4.5vw, 76px); }
 .login-card {
