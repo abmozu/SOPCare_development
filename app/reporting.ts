@@ -15,9 +15,9 @@ export type ReportSettings = {
 export const defaultReportSettings: ReportSettings = {
   organizationName: "SOPCare Sports Health",
   reportTitle: "Clinical Encounter Report",
-  primaryLogo: "",
+  primaryLogo: "/branding/team-saudi.png",
   primaryLogoPosition: "left",
-  secondaryLogo: "",
+  secondaryLogo: "/branding/saudi-olympic-paralympic.png",
   secondaryLogoPosition: "right",
   stamp: "",
   stampPosition: "right",
@@ -26,10 +26,17 @@ export const defaultReportSettings: ReportSettings = {
 
 const storageKey = "sopcare.report-settings.v1";
 
+function withDefaultBranding(value: Partial<ReportSettings>): ReportSettings {
+  const settings = { ...defaultReportSettings, ...value };
+  if (!settings.primaryLogo) settings.primaryLogo = defaultReportSettings.primaryLogo;
+  if (!settings.secondaryLogo) settings.secondaryLogo = defaultReportSettings.secondaryLogo;
+  return settings;
+}
+
 export function loadReportSettings(): ReportSettings {
   if (typeof window === "undefined") return defaultReportSettings;
   try {
-    return { ...defaultReportSettings, ...JSON.parse(localStorage.getItem(storageKey) ?? "{}") };
+    return withDefaultBranding(JSON.parse(localStorage.getItem(storageKey) ?? "{}"));
   } catch {
     return defaultReportSettings;
   }
@@ -44,7 +51,7 @@ export async function fetchReportSettings(): Promise<ReportSettings> {
     const response = await fetch("/api/report-settings", { cache: "no-store" });
     if (!response.ok) throw new Error("Unable to load report settings");
     const body = await response.json() as { settings?: Partial<ReportSettings> };
-    const settings = { ...defaultReportSettings, ...(body.settings ?? {}) };
+    const settings = withDefaultBranding(body.settings ?? {});
     saveReportSettings(settings);
     return settings;
   } catch {
@@ -82,13 +89,18 @@ export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: Pdf
   let y = 16;
 
   const xFor = (position: ReportAssetPosition, assetWidth: number) => position === "left" ? margin : position === "center" ? (width - assetWidth) / 2 : width - margin - assetWidth;
+  const resolveAsset = async (source: string) => {
+    if (!source || source.startsWith("data:")) return source;
+    const blob = await fetch(source).then((response) => response.blob());
+    return await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob); });
+  };
   const addAsset = (source: string, position: ReportAssetPosition, top: number, assetWidth = 30, assetHeight = 14) => {
     if (!source) return;
     try { pdf.addImage(source, source.includes("image/png") ? "PNG" : "JPEG", xFor(position, assetWidth), top, assetWidth, assetHeight, undefined, "FAST"); } catch { /* Unsupported image data is ignored safely. */ }
   };
 
-  addAsset(settings.primaryLogo, settings.primaryLogoPosition, y, 31, 14);
-  addAsset(settings.secondaryLogo, settings.secondaryLogoPosition, y, 31, 14);
+  addAsset(await resolveAsset(settings.primaryLogo), settings.primaryLogoPosition, y, 36, 14);
+  addAsset(await resolveAsset(settings.secondaryLogo), settings.secondaryLogoPosition, y, 42, 14);
   pdf.setTextColor(...green); pdf.setFont("helvetica", "bold"); pdf.setFontSize(18);
   pdf.text(settings.organizationName, margin, y + 22);
   pdf.setTextColor(...muted); pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
@@ -135,7 +147,7 @@ export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: Pdf
   const history = plainText(encounter.plan) || plainText([encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).join(" "));
   addSection("Clinical history", history || "No clinical history recorded.");
 
-  if (settings.showStamp && settings.stamp) addAsset(settings.stamp, settings.stampPosition, Math.min(y + 2, 245), 34, 28);
+  if (settings.showStamp && settings.stamp) addAsset(await resolveAsset(settings.stamp), settings.stampPosition, Math.min(y + 2, 245), 34, 28);
   const pages = pdf.getNumberOfPages();
   for (let page = 1; page <= pages; page++) {
     pdf.setPage(page); pdf.setDrawColor(220, 228, 224); pdf.line(margin, 284, width - margin, 284);

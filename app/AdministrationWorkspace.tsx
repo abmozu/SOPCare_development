@@ -3,6 +3,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import type { AccessRole, AuditEntry, Permission, PortalUser, ProfessionalRole, Workspace } from "./access-model";
 import { defaultReportSettings, fetchReportSettings, persistReportSettings, ReportAssetPosition, ReportSettings } from "./reporting";
+import BrandLogos from "./BrandLogos";
 
 type RefItem = { id: string; name: string };
 type AdminAthlete = { id: string; mrn: string; firstName: string; lastName: string; dateOfBirth: string; sex: string; sportId: string; sport: string; discipline: string; dominantSide: string; teamId: string; team: string; status: string };
@@ -33,7 +34,7 @@ export default function AdministrationWorkspace({ user, onSwitch, onLogout }: { 
   const props = { data, setData, user, notify: setToast };
 
   return <div className="admin-shell">
-    <aside className="sidebar admin-sidebar"><button className="brand" onClick={() => setPage("Dashboard")}><span className="brand-mark">S</span><span><strong>SOPCare</strong><small>ADMINISTRATION</small></span></button><nav><p className="nav-label">Administration</p>{allowedNav.map((item) => <button key={item} className={`nav-item ${page === item ? "active" : ""}`} onClick={() => setPage(item)}><span className="nav-glyph">{navGlyph[item]}</span>{item}</button>)}</nav><div className="sidebar-foot"><span className="secure-pulse" /><div><strong>Permission protected</strong><small>Mock administration layer</small></div></div></aside>
+    <aside className="sidebar admin-sidebar"><button className="brand" onClick={() => setPage("Dashboard")}><BrandLogos compact /><span><strong>SOPCare</strong><small>ADMINISTRATION</small></span></button><nav><p className="nav-label">Administration</p>{allowedNav.map((item) => <button key={item} className={`nav-item ${page === item ? "active" : ""}`} onClick={() => setPage(item)}><span className="nav-glyph">{navGlyph[item]}</span>{item}</button>)}</nav><div className="sidebar-foot"><span className="secure-pulse" /><div><strong>Permission protected</strong><small>Mock administration layer</small></div></div></aside>
     <div className="main-shell admin-main"><header className="topbar admin-topbar"><div><p className="eyebrow">ADMINISTRATION WORKSPACE</p><strong>{page}</strong></div><div className="top-actions"><button className="workspace-switch" onClick={onSwitch}>Switch workspace</button><div className="account"><AdminAvatar name={user.fullName} /><span><strong>{user.fullName}</strong><small>{user.professionalRole}</small></span></div><button className="icon-button" onClick={onLogout} title="Sign out">↪</button></div></header><div className="prototype-banner"><span>SOPCare prototype</span> Athlete records are saved centrally; identity settings remain demonstration data.</div>
       <main className="content admin-content">
         {page === "Dashboard" && <Dashboard {...props} onNavigate={setPage} />}
