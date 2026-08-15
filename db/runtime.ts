@@ -210,6 +210,42 @@ export async function ensureDatabase() {
     updated_by text NOT NULL DEFAULT '',
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
   )`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS clinical_tasks (
+    id text PRIMARY KEY,
+    recipient_user_id text NOT NULL,
+    task_type text NOT NULL,
+    title text NOT NULL,
+    detail text NOT NULL DEFAULT '',
+    injury_id text,
+    plan_id text,
+    handover_id text,
+    status text NOT NULL DEFAULT 'Open',
+    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    completed_at text
+  )`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS clinical_handovers (
+    id text PRIMARY KEY,
+    injury_id text NOT NULL,
+    plan_id text,
+    from_user_id text NOT NULL,
+    to_user_id text NOT NULL,
+    summary text NOT NULL,
+    status text NOT NULL DEFAULT 'Pending',
+    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    accepted_at text
+  )`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS return_to_play_decisions (
+    id text PRIMARY KEY,
+    injury_id text NOT NULL,
+    plan_id text NOT NULL,
+    decision text NOT NULL,
+    restrictions text NOT NULL DEFAULT '',
+    note text NOT NULL,
+    decided_by text NOT NULL,
+    decided_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_clinical_tasks_recipient_status ON clinical_tasks (recipient_user_id, status)").run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_clinical_handovers_target_status ON clinical_handovers (to_user_id, status)").run();
 
   // Import the supplied athlete roster once. The import is idempotent, so a
   // partial first run is safely completed on the next workspace load.

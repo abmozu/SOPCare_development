@@ -19,7 +19,7 @@ export async function GET() {
       specialty,
       clinicCity: actor.clinicCity,
     };
-    const [athletes, encounters, practitioners, activities, sports, teams, injuries, injuryHistory, rehabilitationPlans, rehabilitationPhases, rehabilitationExercises, rehabilitationSessions] = await Promise.all([
+    const [athletes, encounters, practitioners, activities, sports, teams, injuries, injuryHistory, rehabilitationPlans, rehabilitationPhases, rehabilitationExercises, rehabilitationSessions, tasks] = await Promise.all([
       db.prepare(`
         SELECT a.id, a.mrn, a.first_name AS firstName, a.last_name AS lastName,
           a.date_of_birth AS dateOfBirth, a.sex, a.nationality, a.discipline,
@@ -61,7 +61,7 @@ export async function GET() {
         ORDER BY e.encounter_date DESC
       `).bind(actor.id, actor.email).all(),
       db.prepare(`
-        SELECT pp.id, u.full_name AS name, pp.specialty, pp.credentials
+        SELECT pp.id, pp.user_id AS userId, u.full_name AS name, pp.specialty, pp.credentials, u.clinic_city AS clinicCity
         FROM practitioner_profiles pp JOIN users u ON u.id = pp.user_id
         ORDER BY u.full_name
       `).all(),
@@ -148,6 +148,8 @@ export async function GET() {
         JOIN users u ON u.id = pp.user_id
         ORDER BY rs.session_date DESC
       `).all(),
+      db.prepare(`SELECT id, task_type AS taskType, title, detail, injury_id AS injuryId, plan_id AS planId, handover_id AS handoverId, created_at AS createdAt
+        FROM clinical_tasks WHERE recipient_user_id = ? AND status = 'Open' ORDER BY created_at DESC`).bind(actor.id).all(),
     ]);
 
     const athleteRows = athletes.results as Array<{ encounterDate?: string; followUpDate?: string; status: string }>;
@@ -173,6 +175,7 @@ export async function GET() {
       rehabilitationPhases: rehabilitationPhases.results,
       rehabilitationExercises: rehabilitationExercises.results,
       rehabilitationSessions: rehabilitationSessionRows,
+      tasks: tasks.results,
       stats: {
         activeAthletes: athleteRows.length,
         encountersThisWeek: encounterRows.filter((row) => String(row.encounterDate) >= weekStart.toISOString()).length,
