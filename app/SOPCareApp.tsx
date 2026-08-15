@@ -116,6 +116,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
   const [pendingEncounterId, setPendingEncounterId] = useState<string | null>(null);
   const [focusedEncounterId, setFocusedEncounterId] = useState<string | null>(null);
   const [returnToInjuryId, setReturnToInjuryId] = useState<string | null>(null);
+  const [injuryOriginAthleteId, setInjuryOriginAthleteId] = useState<string | null>(null);
   const [returnToEncounterId, setReturnToEncounterId] = useState<string | null>(null);
   const [returnToProfileKey, setReturnToProfileKey] = useState<string | null>(null);
   const [returnToEncounterScroll, setReturnToEncounterScroll] = useState<ScrollPosition | null>(null);
@@ -128,6 +129,8 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     ? [view, selectedId ?? "", profileTab, focusedEncounterId ?? ""].join(":")
     : view === "InjuryDetail"
       ? [view, selectedInjuryId ?? ""].join(":")
+      : view === "AthleteInjuries"
+        ? [view, selectedId ?? ""].join(":")
       : view === "RehabilitationDetail"
         ? [view, selectedRehabilitationId ?? ""].join(":")
         : view;
@@ -197,11 +200,19 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     setView("Profile");
   }
 
-  function showInjury(id: string) {
+  function showInjury(id: string, athleteOriginId?: string) {
     captureScroll();
     setReturnToEncounterId(null);
+    setInjuryOriginAthleteId(athleteOriginId ?? null);
     setSelectedInjuryId(id);
     setView("InjuryDetail");
+  }
+
+  function showAthleteInjuries() {
+    if (!selectedId) return;
+    captureScroll();
+    setFocusedEncounterId(null);
+    setView("AthleteInjuries");
   }
 
   function showRehabilitation(id: string) {
@@ -427,11 +438,12 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
           {view === "Overview" && <Overview data={data} today={today} onSearch={(value) => { captureScroll(); setQuery(value); setView("Athletes"); }} onInjuries={() => navigate("Injuries")} />}
           {view === "Athletes" && <AthletesView athletes={filtered} all={data.athletes} query={query} setQuery={setQuery} sportFilter={sportFilter} setSportFilter={setSportFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} onAthlete={showProfile} />}
           {view === "Injuries" && <InjuriesView injuries={data.injuries} onOpen={showInjury} />}
-          {view === "InjuryDetail" && selectedInjury && <InjuryDetailView injury={selectedInjury} rehabilitationPlan={data.rehabilitationPlans.find((plan) => plan.injuryId === selectedInjury.id)} history={data.injuryHistory.filter((item) => item.injuryId === selectedInjury.id)} encounters={data.encounters.filter((item) => item.injuryId === selectedInjury.id)} expandedEncounters={expandedLinkedEncounters[selectedInjury.id] ?? []} onExpandedEncountersChange={(ids) => setExpandedLinkedEncounters((current) => ({ ...current, [selectedInjury.id]: ids }))} backLabel={returnToEncounterId ? "Back to encounter" : "Injury registry"} onBack={returnToEncounterId ? returnToEncounter : () => navigate("Injuries")} onAthlete={showProfile} onEncounter={openEncounterFromInjury} onStage={() => setModal("injuryStage")} onRehabilitation={showRehabilitation} onCreateRehabilitation={() => setModal("rehabilitation")} />}
+          {view === "InjuryDetail" && selectedInjury && <InjuryDetailView injury={selectedInjury} rehabilitationPlan={data.rehabilitationPlans.find((plan) => plan.injuryId === selectedInjury.id)} history={data.injuryHistory.filter((item) => item.injuryId === selectedInjury.id)} encounters={data.encounters.filter((item) => item.injuryId === selectedInjury.id)} expandedEncounters={expandedLinkedEncounters[selectedInjury.id] ?? []} onExpandedEncountersChange={(ids) => setExpandedLinkedEncounters((current) => ({ ...current, [selectedInjury.id]: ids }))} backLabel={returnToEncounterId ? "Back to encounter" : injuryOriginAthleteId ? "Back to all injuries" : "Injury registry"} onBack={returnToEncounterId ? returnToEncounter : injuryOriginAthleteId ? () => { const athleteId = injuryOriginAthleteId; setInjuryOriginAthleteId(null); setSelectedId(athleteId); setView("AthleteInjuries"); } : () => navigate("Injuries")} onAthlete={showProfile} onEncounter={openEncounterFromInjury} onStage={() => setModal("injuryStage")} onRehabilitation={showRehabilitation} onCreateRehabilitation={() => setModal("rehabilitation")} />}
           {view === "Rehabilitation" && <RehabilitationView plans={data.rehabilitationPlans} stats={data.stats} onNew={() => setModal("rehabilitation")} onOpen={showRehabilitation} />}
           {view === "RehabilitationDetail" && selectedRehabilitation && <RehabilitationDetailView plan={selectedRehabilitation} phases={data.rehabilitationPhases.filter((phase) => phase.planId === selectedRehabilitation.id)} exercises={data.rehabilitationExercises} sessions={data.rehabilitationSessions.filter((session) => session.planId === selectedRehabilitation.id)} onBack={() => navigate("Rehabilitation")} onInjury={showInjury} onAthlete={showProfile} onSession={() => setModal("rehabSession")} onAdvance={() => setModal("rehabAdvance")} />}
           {view === "Care Team" && <CareTeamView practitioners={data.practitioners} athletes={data.athletes} />}
-          {view === "Profile" && selected && <ProfileView athlete={selected} athletes={data.athletes} encounters={data.encounters} injuries={data.injuries.filter((injury) => injury.athleteId === selected.id)} practitioners={data.practitioners} tab={profileTab} setTab={setProfileTab} initialEncounterId={focusedEncounterId} returnToInjury={returnToInjuryId ? data.injuries.find((injury) => injury.id === returnToInjuryId) : undefined} onBack={() => { if (returnToInjuryId) { showInjury(returnToInjuryId); setReturnToInjuryId(null); setFocusedEncounterId(null); } else navigate("Athletes"); }} onAthlete={showProfile} onEncounter={() => setModal("encounter")} onManageInjury={(encounterId) => { setPendingEncounterId(encounterId); setModal("injuryAssociation"); }} onInjury={openInjuryFromEncounter} onEdit={() => setModal("edit")} onCare={() => setModal("care")} onSafety={editClinicalSafety} onSave={saveEncounterFields} />}
+          {view === "Profile" && selected && <ProfileView athlete={selected} athletes={data.athletes} encounters={data.encounters} injuries={data.injuries.filter((injury) => injury.athleteId === selected.id)} practitioners={data.practitioners} tab={profileTab} setTab={setProfileTab} initialEncounterId={focusedEncounterId} returnToInjury={returnToInjuryId ? data.injuries.find((injury) => injury.id === returnToInjuryId) : undefined} onBack={() => { if (returnToInjuryId) { showInjury(returnToInjuryId); setReturnToInjuryId(null); setFocusedEncounterId(null); } else navigate("Athletes"); }} onAthlete={showProfile} onEncounter={() => setModal("encounter")} onManageInjury={(encounterId) => { setPendingEncounterId(encounterId); setModal("injuryAssociation"); }} onInjury={openInjuryFromEncounter} onAllInjuries={showAthleteInjuries} onEdit={() => setModal("edit")} onCare={() => setModal("care")} onSafety={editClinicalSafety} onSave={saveEncounterFields} />}
+          {view === "AthleteInjuries" && selected && <AthleteInjuriesView athlete={selected} injuries={data.injuries.filter((injury) => injury.athleteId === selected.id)} onBack={() => setView("Profile")} onOpen={(id) => showInjury(id, selected.id)} />}
         </main>
       </div>
 
@@ -492,12 +504,12 @@ function AthletesView({ athletes, all, query, setQuery, sportFilter, setSportFil
   </>;
 }
 
-function ProfileView({ athlete, athletes, encounters, injuries, practitioners, tab, setTab, initialEncounterId, returnToInjury, onBack, onAthlete, onEncounter, onManageInjury, onInjury, onEdit, onCare, onSafety, onSave }: { athlete: Athlete; athletes: Athlete[]; encounters: Encounter[]; injuries: Injury[]; practitioners: Practitioner[]; tab: string; setTab: (v: string) => void; initialEncounterId?: string | null; returnToInjury?: Injury; onBack: () => void; onAthlete: (id: string) => void; onEncounter: () => void; onManageInjury: (encounterId: string) => void; onInjury: (injuryId: string, encounterId: string) => void; onEdit: () => void; onCare: () => void; onSafety: (category: "allergies" | "chronicConditions" | "prohibitedMedications") => void; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
+function ProfileView({ athlete, athletes, encounters, injuries, practitioners, tab, setTab, initialEncounterId, returnToInjury, onBack, onAthlete, onEncounter, onManageInjury, onInjury, onAllInjuries, onEdit, onCare, onSafety, onSave }: { athlete: Athlete; athletes: Athlete[]; encounters: Encounter[]; injuries: Injury[]; practitioners: Practitioner[]; tab: string; setTab: (v: string) => void; initialEncounterId?: string | null; returnToInjury?: Injury; onBack: () => void; onAthlete: (id: string) => void; onEncounter: () => void; onManageInjury: (encounterId: string) => void; onInjury: (injuryId: string, encounterId: string) => void; onAllInjuries: () => void; onEdit: () => void; onCare: () => void; onSafety: (category: "allergies" | "chronicConditions" | "prohibitedMedications") => void; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean> }) {
   const athleteEncounters = encounters.filter((encounter) => encounter.athleteId === athlete.id);
-  const tabs = [`Encounters ${athleteEncounters.length}`, `Injuries ${injuries.length}`, "Care Team", "Activity Log"];
+  const tabs = [`Encounters ${athleteEncounters.length}`, "Care Team", "Activity Log"];
   return <>
     <button className={`back-link ${returnToInjury ? "return-context" : ""}`} onClick={onBack}>← {returnToInjury ? `Back to ${returnToInjury.title}` : "Athlete registry"}</button>
-    <section className="profile-hero"><span className="profile-watermark" aria-hidden="true">360</span><div className="profile-identity"><Avatar name={fullName(athlete)} color={athlete.accent} size="lg" /><div><span className="profile-kicker">Athlete 360° record</span><div className="profile-title-row"><h1>{fullName(athlete)}</h1><Status value={athlete.status} /></div><p>{athlete.mrn} <span>·</span> {athlete.sport} <span>·</span> {athlete.discipline} <span>·</span> {athlete.team}</p><div className="identity-meta"><span><small>Age</small>{age(athlete.dateOfBirth)} years</span><span><small>Dominant side</small>{athlete.dominantSide}</span><span><small>Lead practitioner</small>{athlete.leadPractitioner}</span></div></div></div><div className="profile-actions"><button className="button secondary" onClick={onEdit}>Edit profile</button></div></section>
+    <section className="profile-hero"><span className="profile-watermark" aria-hidden="true">360</span><div className="profile-identity"><Avatar name={fullName(athlete)} color={athlete.accent} size="lg" /><div><span className="profile-kicker">Athlete 360° record</span><div className="profile-title-row"><h1>{fullName(athlete)}</h1><Status value={athlete.status} /></div><p>{athlete.mrn} <span>·</span> {athlete.sport} <span>·</span> {athlete.discipline} <span>·</span> {athlete.team}</p><div className="identity-meta"><span><small>Age</small>{age(athlete.dateOfBirth)} years</span><span><small>Dominant side</small>{athlete.dominantSide}</span><span><small>Lead practitioner</small>{athlete.leadPractitioner}</span></div></div></div><div className="profile-actions"><button className="button secondary" onClick={onAllInjuries}>All injuries <span>{injuries.length}</span></button><button className="button secondary" onClick={onEdit}>Edit profile</button></div></section>
     <div className="tabs" role="tablist">{tabs.map((item) => { const key = item.split(" ").slice(0, item.startsWith("Activity") ? 2 : 1).join(" "); return <button key={item} role="tab" aria-selected={tab === key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{item}</button>; })}</div>
     {tab.startsWith("Encounters") && <><ClinicalSafetyPanel athlete={athlete} onEdit={onSafety} /><EncountersView encounters={encounters} athletes={athletes} initialAthleteId={athlete.id} initialEncounterId={initialEncounterId} embedded onNew={onEncounter} onAthlete={onAthlete} onManageInjury={onManageInjury} onInjury={onInjury} onSave={onSave} /></>}
     {tab.startsWith("Injuries") && <div className="panel tab-panel"><div className="panel-head"><div><span className="section-kicker">Injury pathway</span><h3>Injury episodes</h3></div></div>{injuries.length ? <div className="athlete-injury-list">{injuries.map((injury) => <button key={injury.id} onClick={() => onInjury(injury.id)}><div><strong>{injury.title}</strong><small>{injury.bodyArea} · Onset {shortDate(injury.onsetDate)}</small></div><Status value={injury.stage} /><span>›</span></button>)}</div> : <div className="empty-state compact-empty"><h3>No injury episodes</h3><p>An injury episode can be created after saving a relevant encounter.</p></div>}</div>}
@@ -551,8 +563,19 @@ function daysOpen(injury: Injury) {
 }
 
 function InjuriesView({ injuries, onOpen }: { injuries: Injury[]; onOpen: (id: string) => void }) {
-  const [stageFilter, setStageFilter] = useState("Open episodes");
-  const shown = injuries.filter((injury) => stageFilter === "All stages" || (stageFilter === "Open episodes" ? injury.stage !== "Closed" : injury.stage === stageFilter));
+  const [mode, setMode] = useState<"current" | "previous">("current");
+  const [stageFilter, setStageFilter] = useState("All current stages");
+  const [query, setQuery] = useState("");
+  const [athleteFilter, setAthleteFilter] = useState("All athletes");
+  const isPrevious = mode === "previous";
+  const athletes = [...new Map(injuries.map((injury) => [injury.athleteId, injury.athleteName])).entries()];
+  const shown = injuries.filter((injury) => {
+    const matchesMode = isPrevious ? injury.stage === "Closed" : injury.stage !== "Closed";
+    const matchesStage = isPrevious || stageFilter === "All current stages" || injury.stage === stageFilter;
+    const matchesSearch = !query.trim() || `${injury.athleteName} ${injury.mrn} ${injury.title}`.toLowerCase().includes(query.trim().toLowerCase());
+    const matchesAthlete = athleteFilter === "All athletes" || injury.athleteId === athleteFilter;
+    return matchesMode && matchesStage && matchesSearch && matchesAthlete;
+  }).sort((a, b) => new Date(isPrevious ? (b.closedAt ?? b.updatedAt) : b.updatedAt).getTime() - new Date(isPrevious ? (a.closedAt ?? a.updatedAt) : a.updatedAt).getTime());
   const count = (stage: string) => injuries.filter((injury) => injury.stage === stage).length;
   return <>
     <PageHeading eyebrow="Injury management" title="Injury episodes" text="Coordinate assessment, treatment, training modification, and return-to-sport decisions in one pathway. New episodes start from a saved encounter." />
@@ -562,10 +585,19 @@ function InjuriesView({ injuries, onOpen }: { injuries: Injury[]; onOpen: (id: s
       <div><span className="metric-icon gold">⌁</span><small>Modified training</small><strong>{count("Modified Training")}</strong><p>Coordinated load changes</p></div>
       <div><span className="metric-icon rose">✓</span><small>RTS review</small><strong>{count("Return-to-Sport Review")}</strong><p>Shared decisions pending</p></div>
     </section>
-    <section className="panel registry-panel"><div className="registry-tools"><div className="stage-filters" role="group" aria-label="Filter injury stages">{["Open episodes", "Under Assessment", "Under Treatment", "Modified Training", "Return-to-Sport Review", "Closed", "All stages"].map((stage) => <button key={stage} className={stageFilter === stage ? "active" : ""} onClick={() => setStageFilter(stage)}>{stage}</button>)}</div><span className="result-count">{shown.length} episodes</span></div>
-      {shown.length ? <div className="table-wrap"><table className="injury-table"><thead><tr><th>Athlete</th><th>Injury</th><th>Stage</th><th>Participation</th><th>Days open</th><th>Next review</th><th>Lead</th><th /></tr></thead><tbody>{shown.map((injury) => <tr key={injury.id} onClick={() => onOpen(injury.id)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") onOpen(injury.id); }}><td><div className="athlete-cell"><Avatar name={injury.athleteName} /><span><strong>{injury.athleteName}</strong><small>{injury.mrn} · {injury.sport}</small></span></div></td><td><strong>{injury.title}</strong><small className="cell-sub">{injury.bodyArea} · {injury.diagnosisStatus}</small></td><td><Status value={injury.stage} /></td><td>{injury.participationStatus}</td><td><strong>{daysOpen(injury)}</strong> days</td><td>{shortDate(injury.reviewDate)}</td><td>{injury.leadPractitioner}</td><td><button className="row-menu" aria-label={`Open ${injury.title}`}>›</button></td></tr>)}</tbody></table></div> : <div className="empty-state"><span>✓</span><h3>No episodes in this stage</h3><p>Choose another pathway stage or open a new injury episode.</p></div>}
+    <section className="panel registry-panel"><div className="registry-tools injury-registry-tools"><div className="stage-filters" role="group" aria-label="Injury registry view"><button className={!isPrevious ? "active" : ""} onClick={() => { setMode("current"); setAthleteFilter("All athletes"); }}>Current injuries</button><button className={isPrevious ? "active" : ""} onClick={() => { setMode("previous"); setStageFilter("All current stages"); }}>Previous injuries</button></div>{isPrevious ? <><label className="table-search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search athlete, MRN, or injury" aria-label="Search previous injuries" /></label><select value={athleteFilter} onChange={(event) => setAthleteFilter(event.target.value)} aria-label="Choose athlete for previous injuries"><option value="All athletes">All athletes</option>{athletes.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></> : <div className="stage-filters" role="group" aria-label="Filter current injury stages">{["All current stages", "Under Assessment", "Under Treatment", "Modified Training", "Return-to-Sport Review"].map((stage) => <button key={stage} className={stageFilter === stage ? "active" : ""} onClick={() => setStageFilter(stage)}>{stage}</button>)}</div>}<span className="result-count">{shown.length} episodes</span></div>
+      {shown.length ? isPrevious && athleteFilter !== "All athletes" ? <InjuryTimeline injuries={shown} onOpen={onOpen} label="Previous injuries timeline" /> : <div className="table-wrap"><table className="injury-table"><thead><tr><th>Athlete</th><th>Injury</th><th>Stage</th><th>Participation</th><th>Days open</th><th>{isPrevious ? "Closed" : "Next review"}</th><th>Lead</th><th /></tr></thead><tbody>{shown.map((injury) => <tr key={injury.id} onClick={() => onOpen(injury.id)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") onOpen(injury.id); }}><td><div className="athlete-cell"><Avatar name={injury.athleteName} /><span><strong>{injury.athleteName}</strong><small>{injury.mrn} · {injury.sport}</small></span></div></td><td><strong>{injury.title}</strong><small className="cell-sub">{injury.bodyArea} · {injury.diagnosisStatus}</small></td><td><Status value={injury.stage} /></td><td>{injury.participationStatus}</td><td><strong>{daysOpen(injury)}</strong> days</td><td>{shortDate(isPrevious ? injury.closedAt : injury.reviewDate)}</td><td>{injury.leadPractitioner}</td><td><button className="row-menu" aria-label={`Open ${injury.title}`}>›</button></td></tr>)}</tbody></table></div> : <div className="empty-state"><span>✓</span><h3>{isPrevious ? "No previous injuries found" : "No current injuries found"}</h3><p>{isPrevious ? "Try another athlete or search term." : "Current injury episodes will appear here."}</p></div>}
     </section>
   </>;
+}
+
+function InjuryTimeline({ injuries, onOpen, label = "All injuries" }: { injuries: Injury[]; onOpen: (id: string) => void; label?: string }) {
+  return <div className="injury-record-timeline" aria-label={label}>{injuries.map((injury) => <button key={injury.id} onClick={() => onOpen(injury.id)}><span className={`injury-timeline-dot ${injury.stage === "Closed" ? "closed" : ""}`} /><time>{shortDate(injury.closedAt ?? injury.onsetDate)}</time><div><strong>{injury.title}</strong><small>{injury.bodyArea} · {injury.laterality} · {injury.leadPractitioner}</small></div><Status value={injury.stage} /><b>›</b></button>)}</div>;
+}
+
+function AthleteInjuriesView({ athlete, injuries, onBack, onOpen }: { athlete: Athlete; injuries: Injury[]; onBack: () => void; onOpen: (id: string) => void }) {
+  const ordered = [...injuries].sort((a, b) => new Date(b.closedAt ?? b.updatedAt).getTime() - new Date(a.closedAt ?? a.updatedAt).getTime());
+  return <><button className="back-link return-context" onClick={onBack}>← Back to {fullName(athlete)}</button><PageHeading eyebrow="Athlete injury record" title="All injuries" text={`Current and previous injury episodes for ${fullName(athlete)}.`} /><section className="panel athlete-injury-timeline-panel"><div className="panel-head"><div><span className="section-kicker">Longitudinal record</span><h3>{ordered.length} injury episodes</h3></div><span className="result-count">{ordered.filter((injury) => injury.stage !== "Closed").length} current · {ordered.filter((injury) => injury.stage === "Closed").length} previous</span></div>{ordered.length ? <InjuryTimeline injuries={ordered} onOpen={onOpen} /> : <div className="empty-state"><h3>No injury episodes</h3><p>This athlete has no current or previous injury records.</p></div>}</section></>;
 }
 
 function InjuryDetailView({ injury, rehabilitationPlan, history, encounters, expandedEncounters, onExpandedEncountersChange, backLabel, onBack, onAthlete, onEncounter, onStage, onRehabilitation, onCreateRehabilitation }: { injury: Injury; rehabilitationPlan?: RehabilitationPlan; history: InjuryHistory[]; encounters: Encounter[]; expandedEncounters: string[]; onExpandedEncountersChange: (ids: string[]) => void; backLabel: string; onBack: () => void; onAthlete: (id: string) => void; onEncounter: (encounter: Encounter) => void; onStage: () => void; onRehabilitation: (id: string) => void; onCreateRehabilitation: () => void }) {
