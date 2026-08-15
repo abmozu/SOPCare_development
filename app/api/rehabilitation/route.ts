@@ -17,16 +17,18 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json() as Record<string, unknown>;
     const injuryId = cleanText(payload.injuryId, 80);
-    const ownerPractitionerId = cleanText(payload.ownerPractitionerId, 80);
     const title = cleanText(payload.title, 180);
     const startDate = cleanText(payload.startDate, 10);
     const targetDate = cleanText(payload.targetDate, 10) || null;
-    const weeklyFrequency = cleanText(payload.weeklyFrequency, 100);
+    const weeklyFrequency = cleanText(payload.weeklyFrequency, 3);
     const primaryGoal = cleanText(payload.primaryGoal, 1000);
     const precautions = cleanText(payload.precautions, 1000) || "None recorded";
     const nextReviewDate = cleanText(payload.nextReviewDate, 10) || null;
-    if (!injuryId || !ownerPractitionerId || !title || !startDate || !weeklyFrequency || !primaryGoal) {
+    if (!injuryId || !title || !startDate || !weeklyFrequency || !primaryGoal) {
       return Response.json({ error: "Complete all required rehabilitation plan fields." }, { status: 400 });
+    }
+    if (!/^([1-9]|1[0-4])$/.test(weeklyFrequency)) {
+      return Response.json({ error: "Weekly frequency must be a whole number from 1 to 14." }, { status: 400 });
     }
 
     const db = await ensureDatabase();
@@ -37,15 +39,19 @@ export async function POST(request: Request) {
     if (injury.stage === "Closed") return Response.json({ error: "A rehabilitation plan cannot be opened for a closed injury episode." }, { status: 400 });
     const existing = await db.prepare("SELECT id FROM rehabilitation_plans WHERE injury_id = ? AND status = 'Active'").bind(injuryId).first();
     if (existing) return Response.json({ error: "This injury already has an active rehabilitation plan." }, { status: 409 });
-    const practitioner = await db.prepare("SELECT id FROM practitioner_profiles WHERE id = ?").bind(ownerPractitionerId).first();
-    if (!practitioner) return Response.json({ error: "Plan owner not found." }, { status: 404 });
+    let practitioner = await db.prepare("SELECT id FROM practitioner_profiles WHERE user_id = ?").bind(actor.id).first<{ id: string }>();
+    if (!practitioner) {
+      practitioner = { id: `pr-${crypto.randomUUID()}` };
+      await db.prepare(`INSERT INTO practitioner_profiles (id, user_id, specialty, credentials, clinic_city)
+        VALUES (?, ?, ?, ?, ?)`).bind(practitioner.id, actor.id, actor.specialty, "SOPCare practitioner", actor.clinicCity).run();
+    }
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     const statements = [
       db.prepare(`INSERT INTO rehabilitation_plans (id, injury_id, owner_practitioner_id, title, status, start_date, target_date, current_phase, overall_progress, weekly_frequency, primary_goal, precautions, next_review_date, created_at, updated_at)
         VALUES (?, ?, ?, ?, 'Active', ?, ?, 1, 0, ?, ?, ?, ?, ?, ?)`)
-        .bind(id, injuryId, ownerPractitionerId, title, startDate, targetDate, weeklyFrequency, primaryGoal, precautions, nextReviewDate, now, now),
+        .bind(id, injuryId, practitioner.id, title, startDate, targetDate, weeklyFrequency, primaryGoal, precautions, nextReviewDate, now, now),
       ...phaseTemplates.map((phase, index) => db.prepare(`INSERT INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress, started_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`)
         .bind(crypto.randomUUID(), id, index + 1, phase.title, index === 0 ? "Active" : "Locked", phase.goals, phase.entry, phase.exit, index === 0 ? now : null, now, now)),

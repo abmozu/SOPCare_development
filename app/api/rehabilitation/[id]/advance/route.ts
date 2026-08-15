@@ -39,11 +39,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       statements.push(db.prepare("UPDATE rehabilitation_plans SET current_phase = ?, overall_progress = ?, updated_at = ? WHERE id = ?").bind(next.phaseNumber, overall, now, id));
     } else {
       statements.push(db.prepare("UPDATE rehabilitation_plans SET status = 'Completed', overall_progress = 100, updated_at = ? WHERE id = ?").bind(now, id));
-      statements.push(db.prepare("UPDATE injury_episodes SET stage = 'Return-to-Sport Review', participation_status = 'Return-to-Sport Review', next_action = 'Complete multidisciplinary return-to-sport review', updated_at = ? WHERE id = ?").bind(now, plan.injuryId));
-      statements.push(db.prepare("UPDATE athletes SET status = 'Return-to-Sport Review', updated_at = ? WHERE id = ?").bind(now, plan.athleteId));
+      const closureSummary = `Rehabilitation pathway completed. ${decisionNote}`;
+      statements.push(db.prepare("UPDATE injury_episodes SET stage = 'Closed', participation_status = 'Available', next_action = 'Rehabilitation pathway completed', closure_summary = ?, closed_at = ?, updated_at = ? WHERE id = ?").bind(closureSummary, now, now, plan.injuryId));
+      statements.push(db.prepare("UPDATE athletes SET status = 'Available', follow_up_date = NULL, updated_at = ? WHERE id = ?").bind(now, plan.athleteId));
       const actorRow = await db.prepare("SELECT id FROM users WHERE id = ?").bind(actor.id).first<{ id: string }>();
-      statements.push(db.prepare("INSERT INTO injury_status_history (id, injury_id, from_stage, to_stage, note, changed_by, created_at) VALUES (?, ?, ?, 'Return-to-Sport Review', ?, ?, ?)")
-        .bind(crypto.randomUUID(), plan.injuryId, plan.injuryStage, `Rehabilitation plan completed. ${decisionNote}`, actorRow?.id ?? "user-lina", now));
+      statements.push(db.prepare("INSERT INTO injury_status_history (id, injury_id, from_stage, to_stage, note, changed_by, created_at) VALUES (?, ?, ?, 'Closed', ?, ?, ?)")
+        .bind(crypto.randomUUID(), plan.injuryId, plan.injuryStage, closureSummary, actorRow?.id ?? "user-lina", now));
     }
     await db.batch(statements);
     await writeAudit(actor.id, next ? "PHASE_ADVANCED" : "PLAN_COMPLETED", "rehabilitation_plan", id, next ? `${plan.title} advanced to ${next.title}: ${decisionNote}` : `${plan.title} completed: ${decisionNote}`);
