@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import SOPCareApp from "./SOPCareApp";
 import AdministrationWorkspace from "./AdministrationWorkspace";
 import BrandLogos from "./BrandLogos";
+import ProjectLogo from "./ProjectLogo";
 import type { PortalUser, Workspace, WorkspaceKey } from "./access-model";
 
 type SessionPayload = { user: PortalUser; workspaces: Workspace[] };
@@ -61,13 +62,13 @@ function LoginScreen({ onSubmit, busy, error }: { onSubmit: (event: FormEvent<HT
   return (
     <main className="auth-page">
       <section className="auth-story">
-        <div className="auth-brand"><BrandLogos /><span><strong>SOPCare</strong><small>SPORTS HEALTH INTELLIGENCE</small></span></div>
+        <div className="auth-brand"><ProjectLogo light /><BrandLogos /></div>
         <div className="auth-copy"><p className="eyebrow">SECURE CARE PLATFORM</p><h1>One athlete.<br />One care team.<br /><em>One clear plan.</em></h1><p>A protected multidisciplinary health workspace built for high-performance sport.</p></div>
         <p className="auth-security">Encrypted session · Role-based access · Audited actions</p>
       </section>
       <section className="auth-panel">
         <form className="login-card" onSubmit={onSubmit}>
-          <div className="login-mark"><BrandLogos dark /></div>
+          <div className="login-mark"><ProjectLogo /></div>
           <p className="eyebrow">WELCOME BACK</p><h2>Sign in to SOPCare</h2><p className="login-intro">Use your organization credentials to continue.</p>
           <label>Username<input name="username" autoComplete="username" required placeholder="Enter your username" /></label>
           <label>Password<input name="password" type="password" autoComplete="current-password" required placeholder="Enter your password" /></label>
@@ -82,7 +83,7 @@ function LoginScreen({ onSubmit, busy, error }: { onSubmit: (event: FormEvent<HT
 function WorkspaceChooser({ session, onChoose, onLogout }: { session: SessionPayload; onChoose: (id: WorkspaceKey) => void; onLogout: () => void }) {
   return (
     <main className="workspace-page">
-      <header className="workspace-header"><div className="auth-brand dark"><BrandLogos dark /><span><strong>SOPCare</strong><small>SPORTS HEALTH INTELLIGENCE</small></span></div><button className="text-button" onClick={onLogout}>Sign out</button></header>
+      <header className="workspace-header"><div className="auth-brand dark"><ProjectLogo compact /><BrandLogos dark /></div><button className="text-button" onClick={onLogout}>Sign out</button></header>
       <section className="workspace-content"><span className="avatar avatar-lg">{session.user.fullName.split(" ").map((part) => part[0]).slice(0, 2).join("")}</span><p className="eyebrow">SIGNED IN AS {session.user.username.toUpperCase()}</p><h1>Choose Workspace</h1><p>Select where you would like to work. Only authorized workspaces are shown.</p>
         <div className="workspace-grid">{session.workspaces.map((item) => <button key={item.id} className="workspace-card" onClick={() => onChoose(item.id)}><span className="workspace-icon">{item.id === "administration" ? "A" : "+"}</span><span><strong>{item.name}</strong><small>{item.description}</small></span><b>→</b></button>)}</div>
       </section>

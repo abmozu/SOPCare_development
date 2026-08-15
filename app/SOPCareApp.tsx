@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PortalUser } from "./access-model";
 import { downloadEncounterPdf } from "./reporting";
-import BrandLogos from "./BrandLogos";
+import ProjectLogo from "./ProjectLogo";
 
 type Athlete = {
   id: string; mrn: string; firstName: string; lastName: string; dateOfBirth: string;
@@ -398,7 +398,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
     <div className="app-shell">
       <aside className="sidebar">
         <button className="brand" onClick={() => navigate("Overview")} aria-label="SOPCare overview">
-          <BrandLogos compact /><span><strong>SOPCare</strong><small>Sports Health Intelligence</small></span>
+          <ProjectLogo compact light />
         </button>
         <nav aria-label="Primary navigation">
           <p className="nav-label">Workspace</p>
@@ -417,7 +417,7 @@ export default function SOPCareApp({ identity, onSwitchWorkspace, onLogout }: { 
 
       <div className="main-shell">
         <header className="topbar">
-          <button className="mobile-brand" onClick={() => navigate("Overview")}><BrandLogos compact dark /><strong>SOPCare</strong></button>
+          <button className="mobile-brand" onClick={() => navigate("Overview")}><ProjectLogo compact /></button>
           <label className="global-search"><span>⌕</span><input aria-label="Search athletes" placeholder="Search athlete or MRN…" value={query} onChange={(event) => { captureScroll(); setQuery(event.target.value); setView("Athletes"); }} /><kbd>⌘ K</kbd></label>
           <div className="top-actions"><button className="icon-button" aria-label="Notifications"><span className="notification-dot" />◌</button><button className="account" onClick={() => setModal("practitionerProfile")} aria-label="Open practitioner profile"><Avatar name={identity.fullName} size="sm" /><span><strong>{identity.fullName}</strong><small>{identity.professionalRole}</small></span><span className="chevron">⌄</span></button></div>
         </header>

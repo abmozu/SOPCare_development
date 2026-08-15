@@ -20,17 +20,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const origin = `${protocol}://${host}`;
 
   return {
-    title: "SOPCare — Sports Health Intelligence",
+    title: "SOPCare — Saudi Olympic and Paralympic Care",
     description: "One athlete. One care team. One clear plan.",
     openGraph: {
-      title: "SOPCare — Sports Health Intelligence",
+      title: "SOPCare — Saudi Olympic and Paralympic Care",
       description: "One athlete. One care team. One clear plan.",
       type: "website",
       images: [{ url: `${origin}/og-medical-file.png`, width: 1732, height: 910, alt: "SOPCare unified multidisciplinary medical file timeline" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "SOPCare — Sports Health Intelligence",
+      title: "SOPCare — Saudi Olympic and Paralympic Care",
       description: "One athlete. One care team. One clear plan.",
       images: [`${origin}/og-medical-file.png`],
     },

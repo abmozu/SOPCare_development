@@ -101,10 +101,9 @@ export async function downloadEncounterPdf(encounter: PdfEncounter, athlete: Pdf
 
   addAsset(await resolveAsset(settings.primaryLogo), settings.primaryLogoPosition, y, 36, 14);
   addAsset(await resolveAsset(settings.secondaryLogo), settings.secondaryLogoPosition, y, 42, 14);
-  pdf.setTextColor(...green); pdf.setFont("helvetica", "bold"); pdf.setFontSize(18);
-  pdf.text(settings.organizationName, margin, y + 22);
+  addAsset(await resolveAsset("/branding/sopcare-logo.png"), "center", y - 1, 76, 30);
   pdf.setTextColor(...muted); pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
-  pdf.text(settings.reportTitle.toUpperCase(), margin, y + 28);
+  pdf.text(settings.reportTitle.toUpperCase(), width / 2, y + 32, { align: "center" });
   pdf.setDrawColor(...gold); pdf.setLineWidth(1.2); pdf.line(margin, y + 33, width - margin, y + 33);
   y += 42;
 

@@ -567,3 +567,40 @@ th { font-size: 10px; letter-spacing: .075em; }
   .mobile-brand .brand-logos.compact .team-saudi-logo { width: 65px; height: 28px; }
   .mobile-brand .brand-logos.compact .olympic-logo { width: 44px; height: 33px; }
 }
+
+.project-logo {
+  width: clamp(290px, 21vw, 410px);
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+.project-logo.compact { width: 205px; max-height: 72px; }
+.project-logo.light { filter: drop-shadow(0 2px 8px rgba(0,0,0,.2)); }
+.auth-story .auth-brand { align-items: flex-start; flex-direction: column; gap: 22px; }
+.auth-story .project-logo { width: clamp(330px, 29vw, 500px); }
+.login-mark .project-logo { width: min(360px, 100%); }
+.workspace-header .auth-brand { gap: 20px; }
+.workspace-header .project-logo { width: 220px; }
+.brand .project-logo { width: 210px; max-height: 82px; margin-inline: auto; }
+.mobile-brand .project-logo { width: 158px; max-height: 48px; }
+.report-logo-row img { width: 100%; max-width: 150px; max-height: 54px; object-fit: contain; }
+.report-logo-row img:first-child { max-width: 210px; }
+.report-print-template .report-logo-row strong {
+  width: 210px;
+  height: 62px;
+  display: block;
+  overflow: hidden;
+  color: transparent;
+  background: url("/branding/sopcare-logo.png") center / contain no-repeat;
+}
+.report-print-template footer span:first-child { font-size: 0; }
+.report-print-template footer span:first-child::after { content: "SOPCare · Saudi Olympic and Paralympic Care"; font-size: 8px; }
+
+@media (max-width: 1050px) {
+  .login-mark .project-logo { width: min(390px, 86vw); }
+}
+
+@media (max-width: 620px) {
+  .login-mark .project-logo { width: min(310px, 82vw); }
+  .workspace-header .project-logo { width: 168px; }
+}
