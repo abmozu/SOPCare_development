@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ClipboardEvent, FormEvent, RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { PortalUser } from "./access-model";
 import { downloadEncounterPdf } from "./reporting";
 import ProjectLogo from "./ProjectLogo";
@@ -699,6 +700,55 @@ function VisitReviewEditor({ encounter, onSave, onDownload }: { encounter: Encou
   const [amendments, setAmendments] = useState<Array<{ id: string; createdAt: string }>>([]);
   const editorRef = useRef<HTMLDivElement>(null);
   const history = encounter.plan || [encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).map((item) => `<p>${item}</p>`).join("") || "<p>No clinical history recorded.</p>";
+  const loadAmendments = async () => {
+    if (encounter.canEdit !== 1) { setAmendments([]); return; }
+    try {
+      const response = await fetch(`/api/encounters/${encounter.id}/amendments`);
+      if (!response.ok) { setAmendments([]); return; }
+      const body = await response.json() as { amendments?: Array<{ id: string; createdAt: string }> };
+      setAmendments(Array.isArray(body.amendments) ? body.amendments : []);
+    } catch { setAmendments([]); }
+  };
+  useEffect(() => { setAmending(false); setMessage(""); void loadAmendments(); }, [encounter.id, encounter.canEdit]);
+  const saveAmendment = async () => {
+    const content = editorRef.current?.innerHTML ?? history;
+    setSaving(true); setMessage("");
+    const saved = await onSave(encounter.id, { plan: content });
+    setSaving(false);
+    if (saved) { setAmending(false); setMessage("Saved."); await loadAmendments(); }
+    else setMessage("The amendment could not be saved. Please try again.");
+  };
+  const downloadReport = async () => {
+    setDownloading(true); setMessage("");
+    try { await onDownload(); }
+    catch (error) { setMessage(error instanceof Error ? `PDF could not be created: ${error.message}` : "PDF could not be created. Please try again."); }
+    finally { setDownloading(false); }
+  };
+  const cancelAmendment = () => { if (editorRef.current) editorRef.current.innerHTML = history; setAmending(false); };
+  const amendmentTimes = amendments.flatMap((item) => {
+    const date = new Date(item.createdAt);
+    return Number.isNaN(date.getTime()) ? [] : [new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(date)];
+  });
+  return <>
+    <section className={`encounter-history ${amending ? "is-amending" : ""}`}>
+      {amending && <RichTextToolbar editorRef={editorRef} onChange={() => undefined} />}
+      <div ref={editorRef} className="encounter-history-content rich-document" contentEditable={amending} suppressContentEditableWarning dir="ltr" lang="en" spellCheck onPaste={(event) => pasteRichText(event, () => undefined)} dangerouslySetInnerHTML={{ __html: history }} />
+      {amending && <div className="history-amend-actions"><button className="button secondary small" onClick={cancelAmendment}>Cancel</button><button className="button primary small" disabled={saving} onClick={() => void saveAmendment()}>{saving ? "Saving…" : "Save amendment"}</button></div>}
+    </section>
+    {encounter.canEdit === 1 && !amending && <div className="visit-action-footer"><button className="button secondary small" onClick={() => { setMessage(""); setAmending(true); }}>✎ Amend visit</button><button className="button secondary small pdf-button" disabled={downloading} onClick={() => void downloadReport()}>{downloading ? "Preparing PDF…" : "↓ Download PDF"}</button></div>}
+    {message && <div className="amendment-message">{message}</div>}
+    {amendmentTimes.length > 0 && <div className="amendment-times">{amendmentTimes.map((time, index) => <span key={`${time}-${index}`}>{time}</span>)}</div>}
+  </>;
+}
+
+function DeprecatedVisitReviewEditor({ encounter, onSave, onDownload }: { encounter: Encounter; onSave: (id: string, fields: EncounterUpdate) => Promise<boolean>; onDownload: () => Promise<void> }) {
+  const [amending, setAmending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [amendments, setAmendments] = useState<Array<{ id: string; createdAt: string }>>([]);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const history = encounter.plan || [encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).map((item) => `<p>${item}</p>`).join("") || "<p>No clinical history recorded.</p>";
   const loadAmendments = async () => { if (encounter.canEdit !== 1) { setAmendments([]); return; } try { const response = await fetch(`/api/encounters/${encounter.id}/amendments`); if (!response.ok) { setAmendments([]); return; } const body = await response.json() as { amendments?: Array<{ id: string; createdAt: string }> }; setAmendments(Array.isArray(body.amendments) ? body.amendments : []); } catch { setAmendments([]); } };
   useEffect(() => { setAmending(false); setMessage(""); void loadAmendments(); }, [encounter.id, encounter.canEdit]);
   const startAmendment = () => { setMessage(""); setAmending(true); };
@@ -782,15 +832,72 @@ function CareTeamView({ practitioners, athletes }: { practitioners: Practitioner
 
 function ModalHeading({ kicker, title, text }: { kicker: string; title: string; text: string }) { return <div className="modal-heading"><span className="section-kicker">{kicker}</span><h2 id="modal-title">{title}</h2><p>{text}</p></div>; }
 
+function cleanPastedHtml(html: string) {
+  const parsed = new DOMParser().parseFromString(html, "text/html");
+  parsed.querySelectorAll("script,style,iframe,object,embed,form,input,button,meta,link").forEach((node) => node.remove());
+  const allowedTags = new Set(["P", "DIV", "BR", "B", "STRONG", "I", "EM", "U", "S", "UL", "OL", "LI", "H1", "H2", "H3", "BLOCKQUOTE", "SPAN", "FONT"]);
+  parsed.body.querySelectorAll("*").forEach((node) => {
+    if (!allowedTags.has(node.tagName)) { node.replaceWith(...node.childNodes); return; }
+    const style = node.getAttribute("style") || "";
+    const safeStyle = style.split(";").map((rule) => rule.trim()).filter((rule) => /^(font-weight|font-style|font-size|font-family|text-decoration|color|background-color|text-align|margin-left|padding-left)\s*:/i.test(rule)).join("; ");
+    const color = node.tagName === "FONT" ? node.getAttribute("color") : null;
+    const size = node.tagName === "FONT" ? node.getAttribute("size") : null;
+    [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
+    if (safeStyle) node.setAttribute("style", safeStyle);
+    if (color) node.setAttribute("color", color);
+    if (size) node.setAttribute("size", size);
+  });
+  return parsed.body.innerHTML;
+}
+
+function plainTextToRichHtml(text: string) {
+  const normalized = text.replace(/\r\n?/g, "\n").replace(/[ \t]+/g, " ").replace(/\s+(?=(?:Visit date|Athlete name|Date of birth|Age|Sport \/ Discipline|Clinic City|Reporter Name):|HISTORY OF PRESENT ILLNESS|DIAGNOSIS|REASON FOR VISIT \/ PRESENTING CONCERN)/gi, "\n");
+  const escape = (value: string) => value.replace(/[&<>]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[character] || character);
+  return normalized.split(/\n{2,}/).map((paragraph) => `<p>${escape(paragraph.trim()).replace(/\n/g, "<br>")}</p>`).join("");
+}
+
+function pasteRichText(event: ClipboardEvent<HTMLDivElement>, onChange: (html: string) => void) {
+  event.preventDefault();
+  const html = event.clipboardData.getData("text/html");
+  const content = html ? cleanPastedHtml(html) : plainTextToRichHtml(event.clipboardData.getData("text/plain"));
+  document.execCommand("insertHTML", false, content);
+  onChange(event.currentTarget.innerHTML);
+}
+
+function RichTextToolbar({ editorRef, onChange }: { editorRef: RefObject<HTMLDivElement | null>; onChange: (html: string) => void }) {
+  const run = (command: string, value?: string) => { editorRef.current?.focus(); document.execCommand(command, false, value); onChange(editorRef.current?.innerHTML ?? ""); };
+  const button = (label: string, command: string, content: ReactNode) => <button type="button" aria-label={label} title={label} onMouseDown={(event) => event.preventDefault()} onClick={() => run(command)}>{content}</button>;
+  return <div className="history-toolbar rich-toolbar" role="toolbar" aria-label="History formatting">
+    <select aria-label="Paragraph style" title="Paragraph style" defaultValue="p" onChange={(event) => run("formatBlock", event.target.value)}><option value="p">Normal</option><option value="h2">Heading 1</option><option value="h3">Heading 2</option><option value="blockquote">Quote</option></select>
+    <select aria-label="Font family" title="Font family" defaultValue="Arial" onChange={(event) => run("fontName", event.target.value)}><option>Arial</option><option>Georgia</option><option>Times New Roman</option></select>
+    <select aria-label="Font size" title="Font size" defaultValue="3" onChange={(event) => run("fontSize", event.target.value)}><option value="2">Small</option><option value="3">Normal</option><option value="4">Large</option><option value="5">Extra large</option></select>
+    <span className="toolbar-divider" />{button("Bold", "bold", <b>B</b>)}{button("Italic", "italic", <i>I</i>)}{button("Underline", "underline", <u>U</u>)}{button("Bulleted list", "insertUnorderedList", "• List")}{button("Numbered list", "insertOrderedList", "1. List")}
+    {button("Align left", "justifyLeft", "⇤")}{button("Align center", "justifyCenter", "↔")}{button("Align right", "justifyRight", "⇥")}
+    <label className="toolbar-color" title="Text colour"><span>A</span><input aria-label="Text colour" type="color" defaultValue="#006c46" onChange={(event) => run("foreColor", event.target.value)} /></label>
+    <label className="toolbar-color highlight" title="Highlight colour"><span>▰</span><input aria-label="Highlight colour" type="color" defaultValue="#fff2a8" onChange={(event) => run("hiliteColor", event.target.value)} /></label>
+    {button("Undo", "undo", "↶")}{button("Redo", "redo", "↷")}{button("Clear formatting", "removeFormat", "Tx")}
+  </div>;
+}
+
 function AthleteForm({ data, onSubmit, busy }: { data: Bootstrap; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
   return <form onSubmit={onSubmit}><ModalHeading kicker="New athlete" title="Create athlete profile" text="Start the single clinical record that every specialty will share." /><div className="form-grid"><label>First name*<input name="firstName" required autoFocus /></label><label>Last name*<input name="lastName" required /></label><label>Date of birth*<input name="dateOfBirth" type="date" required /></label><label>Sex*<select name="sex" required><option value="">Select</option><option>Female</option><option>Male</option></select></label><label>Sport*<select name="sportId" required><option value="">Select sport</option>{data.sports.map((sport) => <option key={sport.id} value={sport.id}>{sport.name}</option>)}</select></label><label>Discipline*<input name="discipline" required placeholder="e.g. 400 m" /></label><label>Primary squad*<select name="teamId" required><option value="">Select squad</option>{data.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><label>Dominant side<select name="dominantSide"><option>Right</option><option>Left</option><option>Mixed</option></select></label></div><div className="form-note"><span>i</span> A SOPCare medical record number will be generated automatically.</div><ModalActions busy={busy} primary="Create athlete" /></form>;
+}
+
+function LegacyRichHistoryInput() {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [value, setValue] = useState("");
+  const format = (command: string, commandValue?: string) => { editorRef.current?.focus(); document.execCommand(command, false, commandValue); setValue(editorRef.current?.innerHTML ?? ""); };
+  return <div className="rich-history-input"><div className="history-toolbar" role="toolbar" aria-label="History formatting"><button type="button" aria-label="Bold" onClick={() => format("bold")}><b>B</b></button><button type="button" aria-label="Italic" onClick={() => format("italic")}><i>I</i></button><button type="button" aria-label="Underline" onClick={() => format("underline")}><u>U</u></button><button type="button" onClick={() => format("insertUnorderedList")}>• List</button><button type="button" onClick={() => format("insertOrderedList")}>1. List</button><input aria-label="Text colour" type="color" defaultValue="#006c46" onChange={(event) => format("foreColor", event.target.value)} /></div><div ref={editorRef} className="history-content" contentEditable suppressContentEditableWarning dir="ltr" lang="en" spellCheck data-placeholder="Record symptoms, assessment, decisions, treatment and return-to-sport actions. You can paste formatted text here." onInput={(event) => setValue(event.currentTarget.innerHTML)} /><input type="hidden" name="plan" value={value} /></div>;
 }
 
 function RichHistoryInput() {
   const editorRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState("");
-  const format = (command: string, commandValue?: string) => { editorRef.current?.focus(); document.execCommand(command, false, commandValue); setValue(editorRef.current?.innerHTML ?? ""); };
-  return <div className="rich-history-input"><div className="history-toolbar" role="toolbar" aria-label="History formatting"><button type="button" aria-label="Bold" onClick={() => format("bold")}><b>B</b></button><button type="button" aria-label="Italic" onClick={() => format("italic")}><i>I</i></button><button type="button" aria-label="Underline" onClick={() => format("underline")}><u>U</u></button><button type="button" onClick={() => format("insertUnorderedList")}>• List</button><button type="button" onClick={() => format("insertOrderedList")}>1. List</button><input aria-label="Text colour" type="color" defaultValue="#006c46" onChange={(event) => format("foreColor", event.target.value)} /></div><div ref={editorRef} className="history-content" contentEditable suppressContentEditableWarning dir="ltr" lang="en" spellCheck data-placeholder="Record symptoms, assessment, decisions, treatment and return-to-sport actions. You can paste formatted text here." onInput={(event) => setValue(event.currentTarget.innerHTML)} /><input type="hidden" name="plan" value={value} /></div>;
+  return <div className="rich-history-input word-like-editor">
+    <RichTextToolbar editorRef={editorRef} onChange={setValue} />
+    <div ref={editorRef} className="history-content rich-document" contentEditable suppressContentEditableWarning dir="ltr" lang="en" spellCheck data-placeholder="Record symptoms, assessment, decisions, treatment and return-to-sport actions. Paste formatted text from Word or another clinical document." onPaste={(event) => pasteRichText(event, setValue)} onInput={(event) => setValue(event.currentTarget.innerHTML)} />
+    <input type="hidden" name="plan" value={value} />
+  </div>;
 }
 
 function EncounterForm({ actor, athlete, onSubmit, busy }: { actor: Bootstrap["actor"]; athlete: Athlete; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
