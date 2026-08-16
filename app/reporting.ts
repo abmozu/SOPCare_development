@@ -76,6 +76,13 @@ function plainText(html: string) {
 
 type RichRun = { text: string; bold: boolean; italic: boolean; underline: boolean; color?: string; background?: string; size?: number; breakAfter?: number };
 
+function pdfColor(value?: string) {
+  if (!value) return undefined;
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value;
+  const rgb = value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  return rgb ? `#${rgb.slice(1, 4).map((part) => Number(part).toString(16).padStart(2, "0")).join("")}` : undefined;
+}
+
 function richTextRuns(html: string): RichRun[] {
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
   parsed.querySelectorAll("script,style,iframe,object,embed,form,input,button").forEach((node) => node.remove());
@@ -96,8 +103,8 @@ function richTextRuns(html: string): RichRun[] {
       bold: inherited.bold || ["b", "strong"].includes(tag) || Number.parseInt(style.fontWeight || "0", 10) >= 600,
       italic: inherited.italic || ["i", "em"].includes(tag) || style.fontStyle === "italic",
       underline: inherited.underline || tag === "u" || style.textDecoration.includes("underline"),
-      color: node.style.color || node.getAttribute("color") || inherited.color,
-      background: node.style.backgroundColor || inherited.background,
+      color: pdfColor(node.style.color || node.getAttribute("color") || "") || inherited.color,
+      background: pdfColor(node.style.backgroundColor || "") || inherited.background,
       size: tag === "h1" ? 15 : tag === "h2" ? 13.5 : tag === "h3" ? 12 : cssSize ? Math.max(7.5, Math.min(22, cssSize * 0.75)) : fontSize ? ({ 1: 7.5, 2: 9, 3: 10.5, 4: 13, 5: 16, 6: 19, 7: 23 }[fontSize] || inherited.size) : inherited.size,
     };
     if (tag === "li") runs.push({ text: tag === "li" && node.parentElement?.tagName === "OL" ? `${[...node.parentElement.children].indexOf(node) + 1}. ` : "• ", ...next });
