@@ -641,7 +641,7 @@ th { font-size: 10px; letter-spacing: .075em; }
 .toolbar-color span { pointer-events: none; }
 .toolbar-color input { position: absolute; inset: auto 3px 2px; width: 26px; height: 5px; padding: 0; border: 0; border-radius: 2px; }
 .toolbar-color.highlight span { color: #b79033; }
-.rich-document { color: #1f352c; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.7; }
+.rich-document { color: #1f352c; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 400; line-height: 1.62; letter-spacing: 0; font-synthesis: none; }
 .rich-document p, .rich-document div { margin: 0 0 12px; }
 .rich-document h1, .rich-document h2, .rich-document h3 { margin: 18px 0 9px; color: #075b44; line-height: 1.25; }
 .rich-document h1 { font-size: 25px; }.rich-document h2 { font-size: 21px; }.rich-document h3 { font-size: 18px; }
@@ -649,7 +649,7 @@ th { font-size: 10px; letter-spacing: .075em; }
 .rich-document ul, .rich-document ol { margin: 8px 0 14px; padding-left: 28px; }
 .rich-document[contenteditable="true"] { min-height: 260px; }
 .word-like-editor { border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px #d9e5de; }
-.word-like-editor .history-content { min-height: 310px; background: #fff; }
+.word-like-editor .history-content { min-height: 310px; background: #fff; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 400; line-height: 1.62; }
 .rich-document .pasted-report-field { margin: 0 0 5px; color: #1b2823; font-size: 15px; line-height: 1.45; }
 .rich-document .pasted-report-field strong { font-weight: 800; }
 .rich-document .pasted-report-heading { margin: 22px 0 9px; padding-bottom: 6px; border-bottom: 1px solid #087052; color: #006c46; font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 800; line-height: 1.2; }

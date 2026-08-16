@@ -282,7 +282,7 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
   const reporterName = `${encounter.practitioner || "Not recorded"}, `;
   pdf.text(reporterName, reporterX, y);
   reporterX += pdf.getTextWidth(reporterName);
-  pdf.setFont("helvetica", "bold");
+  pdf.setFont("helvetica", "normal");
   pdf.text(`${encounter.specialty || "Professional role not recorded"}.`, reporterX, y);
   y += 5.6;
   y += 5;
