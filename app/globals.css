@@ -654,3 +654,17 @@ th { font-size: 10px; letter-spacing: .075em; }
 .rich-document .pasted-report-field strong { font-weight: 800; }
 .rich-document .pasted-report-heading { margin: 22px 0 9px; padding-bottom: 6px; border-bottom: 1px solid #087052; color: #006c46; font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 800; line-height: 1.2; }
 .rich-document .pasted-report-heading + p { margin: 0 0 15px; color: #1f2d27; font-size: 15px; line-height: 1.65; }
+
+/* Tiptap clinical editor */
+.tiptap-editor { overflow: hidden; border: 1px solid #cfe0d7; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(11, 60, 43, .04); }
+.tiptap-toolbar { min-height: 58px; padding: 10px 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; border-bottom: 1px solid #dfeae4; background: #f8fbf9; }
+.tiptap-toolbar select, .tiptap-toolbar button { height: 34px; padding: 0 10px; border: 1px solid #d1e0d8; border-radius: 8px; color: #244c3c; background: #fff; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+.tiptap-toolbar select { min-width: 124px; padding-right: 28px; }.tiptap-toolbar button { min-width: 34px; }
+.tiptap-toolbar button:hover, .tiptap-toolbar button.active { border-color: #087052; color: #fff; background: #087052; }
+.tiptap-toolbar .toolbar-color { height: 34px; }.tiptap-prose { min-height: 310px; padding: 26px 28px; outline: none; color: #1f2824; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 400; line-height: 1.65; text-align: left; }
+.tiptap-prose p { margin: 0 0 14px; }.tiptap-prose > :first-child { margin-top: 0; }.tiptap-prose > :last-child { margin-bottom: 0; }
+.tiptap-prose h1, .tiptap-prose h2, .tiptap-prose h3 { margin: 22px 0 10px; color: #006c46; line-height: 1.22; }.tiptap-prose h1 { font-size: 25px; }.tiptap-prose h2 { font-size: 21px; }.tiptap-prose h3 { font-size: 18px; }
+.tiptap-prose ul, .tiptap-prose ol { margin: 0 0 14px; padding-left: 26px; }.tiptap-prose mark { padding: 0 .08em; border-radius: 2px; }.tiptap-prose:focus { box-shadow: inset 0 0 0 2px #9ecbb7; }
+.tiptap-prose p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; height: 0; color: #788982; pointer-events: none; }
+.encounter-history .tiptap-editor { margin: 18px; }.encounter-history .tiptap-prose { min-height: 280px; }
+.tiptap-loading { min-height: 180px; padding: 30px; color: #718078; background: #fff; }

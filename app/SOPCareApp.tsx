@@ -2,6 +2,12 @@
 
 import { ClipboardEvent, FormEvent, RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Highlight from "@tiptap/extension-highlight";
+import TextAlign from "@tiptap/extension-text-align";
+import Underline from "@tiptap/extension-underline";
+import { TextStyleKit } from "@tiptap/extension-text-style";
 import type { PortalUser } from "./access-model";
 import { downloadEncounterPdf } from "./reporting";
 import ProjectLogo from "./ProjectLogo";
@@ -698,8 +704,8 @@ function VisitReviewEditor({ encounter, onSave, onDownload }: { encounter: Encou
   const [downloading, setDownloading] = useState(false);
   const [message, setMessage] = useState("");
   const [amendments, setAmendments] = useState<Array<{ id: string; createdAt: string }>>([]);
-  const editorRef = useRef<HTMLDivElement>(null);
   const history = encounter.plan || [encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).map((item) => `<p>${item}</p>`).join("") || "<p>No clinical history recorded.</p>";
+  const [draft, setDraft] = useState(history);
   const loadAmendments = async () => {
     if (encounter.canEdit !== 1) { setAmendments([]); return; }
     try {
@@ -709,9 +715,9 @@ function VisitReviewEditor({ encounter, onSave, onDownload }: { encounter: Encou
       setAmendments(Array.isArray(body.amendments) ? body.amendments : []);
     } catch { setAmendments([]); }
   };
-  useEffect(() => { setAmending(false); setMessage(""); void loadAmendments(); }, [encounter.id, encounter.canEdit]);
+  useEffect(() => { setAmending(false); setDraft(history); setMessage(""); void loadAmendments(); }, [encounter.id, encounter.canEdit, history]);
   const saveAmendment = async () => {
-    const content = editorRef.current?.innerHTML ?? history;
+    const content = draft || history;
     setSaving(true); setMessage("");
     const saved = await onSave(encounter.id, { plan: content });
     setSaving(false);
@@ -724,15 +730,14 @@ function VisitReviewEditor({ encounter, onSave, onDownload }: { encounter: Encou
     catch (error) { setMessage(error instanceof Error ? `PDF could not be created: ${error.message}` : "PDF could not be created. Please try again."); }
     finally { setDownloading(false); }
   };
-  const cancelAmendment = () => { if (editorRef.current) editorRef.current.innerHTML = history; setAmending(false); };
+  const cancelAmendment = () => { setDraft(history); setAmending(false); };
   const amendmentTimes = amendments.flatMap((item) => {
     const date = new Date(item.createdAt);
     return Number.isNaN(date.getTime()) ? [] : [new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(date)];
   });
   return <>
     <section className={`encounter-history ${amending ? "is-amending" : ""}`}>
-      {amending && <RichTextToolbar editorRef={editorRef} onChange={() => undefined} />}
-      <div ref={editorRef} className="encounter-history-content rich-document" contentEditable={amending} suppressContentEditableWarning dir="ltr" lang="en" spellCheck onPaste={(event) => pasteRichText(event, () => undefined)} dangerouslySetInnerHTML={{ __html: history }} />
+      {amending ? <TiptapClinicalEditor value={draft} onChange={setDraft} /> : <div className="encounter-history-content rich-document" dir="ltr" lang="en" dangerouslySetInnerHTML={{ __html: history }} />}
       {amending && <div className="history-amend-actions"><button className="button secondary small" onClick={cancelAmendment}>Cancel</button><button className="button primary small" disabled={saving} onClick={() => void saveAmendment()}>{saving ? "Saving…" : "Save amendment"}</button></div>}
     </section>
     {encounter.canEdit === 1 && !amending && <div className="visit-action-footer"><button className="button secondary small" onClick={() => { setMessage(""); setAmending(true); }}>✎ Amend visit</button><button className="button secondary small pdf-button" disabled={downloading} onClick={() => void downloadReport()}>{downloading ? "Preparing PDF…" : "↓ Download PDF"}</button></div>}
@@ -910,14 +915,54 @@ function LegacyRichHistoryInput() {
   return <div className="rich-history-input"><div className="history-toolbar" role="toolbar" aria-label="History formatting"><button type="button" aria-label="Bold" onClick={() => format("bold")}><b>B</b></button><button type="button" aria-label="Italic" onClick={() => format("italic")}><i>I</i></button><button type="button" aria-label="Underline" onClick={() => format("underline")}><u>U</u></button><button type="button" onClick={() => format("insertUnorderedList")}>• List</button><button type="button" onClick={() => format("insertOrderedList")}>1. List</button><input aria-label="Text colour" type="color" defaultValue="#006c46" onChange={(event) => format("foreColor", event.target.value)} /></div><div ref={editorRef} className="history-content" contentEditable suppressContentEditableWarning dir="ltr" lang="en" spellCheck data-placeholder="Record symptoms, assessment, decisions, treatment and return-to-sport actions. You can paste formatted text here." onInput={(event) => setValue(event.currentTarget.innerHTML)} /><input type="hidden" name="plan" value={value} /></div>;
 }
 
-function RichHistoryInput() {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const [value, setValue] = useState("");
-  return <div className="rich-history-input word-like-editor">
-    <RichTextToolbar editorRef={editorRef} onChange={setValue} />
-    <div ref={editorRef} className="history-content rich-document" contentEditable suppressContentEditableWarning aria-label="History" dir="ltr" lang="en" spellCheck data-placeholder="Record symptoms, assessment, decisions, treatment and return-to-sport actions. Paste formatted text from Word or another clinical document." onPaste={(event) => pasteRichText(event, setValue)} onInput={(event) => setValue(event.currentTarget.innerHTML)} />
-    <input type="hidden" name="plan" value={value} />
+function TiptapClinicalEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      TextStyleKit,
+      Highlight.configure({ multicolor: true }),
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+    ],
+    content: value || "<p></p>",
+    editorProps: {
+      attributes: {
+        class: "tiptap-prose",
+        "aria-label": "History",
+        "data-placeholder": "Record symptoms, assessment, decisions, treatment and return-to-sport actions. Paste formatted text from Word or another clinical document.",
+      },
+    },
+    onUpdate: ({ editor: current }) => onChange(current.getHTML()),
+  });
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) editor.commands.setContent(value || "<p></p>", { emitUpdate: false });
+  }, [editor, value]);
+  if (!editor) return <div className="tiptap-loading">Loading editor…</div>;
+  const run = (action: () => void) => action();
+  return <div className="tiptap-editor rich-document">
+    <div className="tiptap-toolbar" role="toolbar" aria-label="History formatting">
+      <select aria-label="Paragraph style" value={editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : "p"} onChange={(event) => run(() => event.target.value === "p" ? editor.chain().focus().setParagraph().run() : editor.chain().focus().toggleHeading({ level: Number(event.target.value.slice(1)) as 1 | 2 | 3 }).run())}><option value="p">Paragraph</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option></select>
+      <select aria-label="Font family" value={(editor.getAttributes("textStyle").fontFamily as string) || "Arial"} onChange={(event) => run(() => editor.chain().focus().setFontFamily(event.target.value).run())}><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select>
+      <select aria-label="Font size" value={(editor.getAttributes("textStyle").fontSize as string) || "14px"} onChange={(event) => run(() => editor.chain().focus().setFontSize(event.target.value).run())}><option value="12px">Small</option><option value="14px">Normal</option><option value="16px">Large</option><option value="20px">Extra large</option></select>
+      <span className="toolbar-divider" />
+      <button type="button" aria-label="Bold" className={editor.isActive("bold") ? "active" : ""} onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().toggleBold().run())}><b>B</b></button>
+      <button type="button" aria-label="Italic" className={editor.isActive("italic") ? "active" : ""} onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().toggleItalic().run())}><i>I</i></button>
+      <button type="button" aria-label="Underline" className={editor.isActive("underline") ? "active" : ""} onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().toggleUnderline().run())}><u>U</u></button>
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().toggleBulletList().run())}>• List</button><button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().toggleOrderedList().run())}>1. List</button>
+      <button type="button" aria-label="Align left" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().setTextAlign("left").run())}>⇤</button><button type="button" aria-label="Align center" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().setTextAlign("center").run())}>↔</button><button type="button" aria-label="Align right" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().setTextAlign("right").run())}>⇥</button>
+      <label className="toolbar-color" title="Text colour"><span>A</span><input aria-label="Text colour" type="color" defaultValue="#006c46" onChange={(event) => run(() => editor.chain().focus().setColor(event.target.value).run())} /></label>
+      <label className="toolbar-color highlight" title="Highlight colour"><span>■</span><input aria-label="Highlight colour" type="color" defaultValue="#fff2a8" onChange={(event) => run(() => editor.chain().focus().toggleHighlight({ color: event.target.value }).run())} /></label>
+      <button type="button" aria-label="Undo" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().undo().run())}>↶</button><button type="button" aria-label="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().redo().run())}>↷</button>
+      <button type="button" aria-label="Clear formatting" onMouseDown={(event) => event.preventDefault()} onClick={() => run(() => editor.chain().focus().unsetAllMarks().clearNodes().run())}>Tx</button>
+    </div>
+    <EditorContent editor={editor} />
   </div>;
+}
+
+function RichHistoryInput() {
+  const [value, setValue] = useState("");
+  return <div className="rich-history-input word-like-editor"><TiptapClinicalEditor value={value} onChange={setValue} /><input type="hidden" name="plan" value={value} /></div>;
 }
 
 function EncounterForm({ actor, athlete, onSubmit, busy }: { actor: Bootstrap["actor"]; athlete: Athlete; onSubmit: (e: FormEvent<HTMLFormElement>) => void; busy: boolean }) {

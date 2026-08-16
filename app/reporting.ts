@@ -74,7 +74,7 @@ function plainText(html: string) {
   return (document.body.textContent || "").replace(/\s+/g, " ").trim();
 }
 
-type RichRun = { text: string; bold: boolean; italic: boolean; underline: boolean; color?: string; size?: number; breakAfter?: number };
+type RichRun = { text: string; bold: boolean; italic: boolean; underline: boolean; color?: string; background?: string; size?: number; breakAfter?: number };
 
 function richTextRuns(html: string): RichRun[] {
   const parsed = new DOMParser().parseFromString(html || "", "text/html");
@@ -88,15 +88,17 @@ function richTextRuns(html: string): RichRun[] {
     }
     if (!(node instanceof HTMLElement)) return;
     const tag = node.tagName.toLowerCase();
-    const style = getComputedStyle(node);
+    const style = node.style;
     const fontSize = tag === "font" ? Number.parseInt(node.getAttribute("size") || "3", 10) : 0;
+    const cssSize = Number.parseFloat(style.fontSize || "0");
     const next = {
       ...inherited,
-      bold: inherited.bold || ["b", "strong"].includes(tag) || Number.parseInt(style.fontWeight, 10) >= 600,
+      bold: inherited.bold || ["b", "strong"].includes(tag) || Number.parseInt(style.fontWeight || "0", 10) >= 600,
       italic: inherited.italic || ["i", "em"].includes(tag) || style.fontStyle === "italic",
-      underline: inherited.underline || tag === "u" || style.textDecorationLine.includes("underline"),
+      underline: inherited.underline || tag === "u" || style.textDecoration.includes("underline"),
       color: node.style.color || node.getAttribute("color") || inherited.color,
-      size: tag === "h1" ? 15 : tag === "h2" ? 13.5 : tag === "h3" ? 12 : fontSize ? ({ 1: 7.5, 2: 9, 3: 10.5, 4: 13, 5: 16, 6: 19, 7: 23 }[fontSize] || inherited.size) : inherited.size,
+      background: node.style.backgroundColor || inherited.background,
+      size: tag === "h1" ? 15 : tag === "h2" ? 13.5 : tag === "h3" ? 12 : cssSize ? Math.max(7.5, Math.min(22, cssSize * 0.75)) : fontSize ? ({ 1: 7.5, 2: 9, 3: 10.5, 4: 13, 5: 16, 6: 19, 7: 23 }[fontSize] || inherited.size) : inherited.size,
     };
     if (tag === "li") runs.push({ text: tag === "li" && node.parentElement?.tagName === "OL" ? `${[...node.parentElement.children].indexOf(node) + 1}. ` : "• ", ...next });
     node.childNodes.forEach((child) => walk(child, next));
@@ -325,6 +327,7 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
       pdf.setFontSize(size);
       pdf.setFont("helvetica", run.bold && run.italic ? "bolditalic" : run.bold ? "bold" : run.italic ? "italic" : "normal");
       const colorMatch = run.color?.match(/^#([0-9a-f]{6})$/i);
+      const backgroundMatch = run.background?.match(/^#([0-9a-f]{6})$/i);
       if (colorMatch) {
         const value = Number.parseInt(colorMatch[1], 16);
         pdf.setTextColor((value >> 16) & 255, (value >> 8) & 255, value & 255);
@@ -335,6 +338,11 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
         const tokenWidth = pdf.getTextWidth(token);
         if (x + tokenWidth > width - margin) { x = margin; y += Math.max(5.2, size * 0.5); }
         if (y > 276) { newPage(); x = margin; }
+        if (backgroundMatch) {
+          const value = Number.parseInt(backgroundMatch[1], 16);
+          pdf.setFillColor((value >> 16) & 255, (value >> 8) & 255, value & 255);
+          pdf.rect(x - 0.35, y - size * 0.32, tokenWidth + 0.7, Math.max(4.4, size * 0.46), "F");
+        }
         pdf.text(token, x, y);
         if (run.underline) { pdf.setDrawColor(pdf.getTextColor()); pdf.setLineWidth(0.18); pdf.line(x, y + 0.8, x + tokenWidth - 0.7, y + 0.8); }
         x += tokenWidth;
