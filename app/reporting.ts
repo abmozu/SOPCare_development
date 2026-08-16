@@ -266,7 +266,6 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
     ["Age", `${reportAge(athlete.dateOfBirth, encounter.encounterDate)} years`],
     ["Sport / Discipline", `${athlete.sport}${athlete.discipline ? ` / ${athlete.discipline}` : ""}`],
     ["Clinic City", encounter.clinicCity || "Not recorded"],
-    ["Reporter Name", encounter.practitioner || "Not recorded"],
   ];
   info.forEach(([label, value]) => {
     pdf.setFont("helvetica", "bold"); pdf.setFontSize(10); pdf.setTextColor(...ink);
@@ -276,6 +275,16 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
     pdf.text(String(value || "Not recorded"), margin + labelWidth, y);
     y += 5.6;
   });
+  pdf.setFont("helvetica", "bold"); pdf.setFontSize(10); pdf.setTextColor(...ink);
+  pdf.text("Reporter Name:", margin, y);
+  let reporterX = margin + pdf.getTextWidth("Reporter Name: ");
+  pdf.setFont("helvetica", "normal");
+  const reporterName = `${encounter.practitioner || "Not recorded"}, `;
+  pdf.text(reporterName, reporterX, y);
+  reporterX += pdf.getTextWidth(reporterName);
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`${encounter.specialty || "Professional role not recorded"}.`, reporterX, y);
+  y += 5.6;
   y += 5;
 
   const newPage = () => {

@@ -851,15 +851,35 @@ function cleanPastedHtml(html: string) {
 }
 
 function plainTextToRichHtml(text: string) {
-  const normalized = text.replace(/\r\n?/g, "\n").replace(/[ \t]+/g, " ").replace(/\s+(?=(?:Visit date|Athlete name|Date of birth|Age|Sport \/ Discipline|Clinic City|Reporter Name):|HISTORY OF PRESENT ILLNESS|DIAGNOSIS|REASON FOR VISIT \/ PRESENTING CONCERN)/gi, "\n");
+  const normalized = text.replace(/\r\n?/g, "\n").replace(/[ \t]+/g, " ");
   const escape = (value: string) => value.replace(/[&<>]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[character] || character);
-  return normalized.split(/\n{2,}/).map((paragraph) => `<p>${escape(paragraph.trim()).replace(/\n/g, "<br>")}</p>`).join("");
+  return normalized.split(/\n+/).map((paragraph) => paragraph.trim()).filter(Boolean).map((paragraph) => `<p>${escape(paragraph)}</p>`).join("");
+}
+
+function medicalReportPasteHtml(text: string) {
+  const normalized = text.replace(/\r\n?/g, "\n").replace(/[ \t\n]+/g, " ").trim();
+  if (!/Visit date\s*:/i.test(normalized) || !/(HISTORY OF PRESENT ILLNESS|REASON FOR VISIT \/ PRESENTING CONCERN)/i.test(normalized)) return "";
+  const escape = (value: string) => value.replace(/[&<>]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[character] || character);
+  const marker = /(Visit date|Athlete name|Date of birth|Age|Sport \/ Discipline|Clinic City|Reporter Name)\s*:|\b(HISTORY OF PRESENT ILLNESS|REASON FOR VISIT \/ PRESENTING CONCERN|DIAGNOSIS)\b/gi;
+  const matches = [...normalized.matchAll(marker)];
+  if (!matches.length) return "";
+  const blocks: string[] = [];
+  matches.forEach((match, index) => {
+    const title = (match[1] || match[2] || "").trim();
+    const start = (match.index || 0) + match[0].length;
+    const end = index + 1 < matches.length ? matches[index + 1].index || normalized.length : normalized.length;
+    const value = normalized.slice(start, end).trim();
+    if (match[1]) blocks.push(`<p class="pasted-report-field"><strong>${escape(title)}:</strong> ${escape(value)}</p>`);
+    else blocks.push(`<h2 class="pasted-report-heading">${escape(title.toUpperCase())}</h2>${value ? `<p>${escape(value)}</p>` : ""}`);
+  });
+  return blocks.join("");
 }
 
 function pasteRichText(event: ClipboardEvent<HTMLDivElement>, onChange: (html: string) => void) {
   event.preventDefault();
   const html = event.clipboardData.getData("text/html");
-  const content = html ? cleanPastedHtml(html) : plainTextToRichHtml(event.clipboardData.getData("text/plain"));
+  const text = event.clipboardData.getData("text/plain");
+  const content = medicalReportPasteHtml(text) || (html ? cleanPastedHtml(html) : plainTextToRichHtml(text));
   document.execCommand("insertHTML", false, content);
   onChange(event.currentTarget.innerHTML);
 }
