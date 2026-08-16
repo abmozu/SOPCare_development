@@ -74,6 +74,37 @@ function plainText(html: string) {
   return (document.body.textContent || "").replace(/\s+/g, " ").trim();
 }
 
+type RichRun = { text: string; bold: boolean; italic: boolean; underline: boolean; color?: string; size?: number; breakAfter?: number };
+
+function richTextRuns(html: string): RichRun[] {
+  const parsed = new DOMParser().parseFromString(html || "", "text/html");
+  parsed.querySelectorAll("script,style,iframe,object,embed,form,input,button").forEach((node) => node.remove());
+  const runs: RichRun[] = [];
+  const walk = (node: Node, inherited: Omit<RichRun, "text">) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = (node.textContent || "").replace(/\s+/g, " ");
+      if (text.trim()) runs.push({ text, ...inherited });
+      return;
+    }
+    if (!(node instanceof HTMLElement)) return;
+    const tag = node.tagName.toLowerCase();
+    const style = getComputedStyle(node);
+    const next = {
+      ...inherited,
+      bold: inherited.bold || ["b", "strong"].includes(tag) || Number.parseInt(style.fontWeight, 10) >= 600,
+      italic: inherited.italic || ["i", "em"].includes(tag) || style.fontStyle === "italic",
+      underline: inherited.underline || tag === "u" || style.textDecorationLine.includes("underline"),
+      color: node.style.color || inherited.color,
+      size: tag === "h1" ? 15 : tag === "h2" ? 13.5 : tag === "h3" ? 12 : inherited.size,
+    };
+    if (tag === "li") runs.push({ text: tag === "li" && node.parentElement?.tagName === "OL" ? `${[...node.parentElement.children].indexOf(node) + 1}. ` : "• ", ...next });
+    node.childNodes.forEach((child) => walk(child, next));
+    if (["p", "div", "li", "h1", "h2", "h3", "br"].includes(tag) && runs.length) runs[runs.length - 1].breakAfter = tag === "br" ? 3 : 5;
+  };
+  parsed.body.childNodes.forEach((node) => walk(node, { bold: false, italic: false, underline: false, size: 10.2 }));
+  return runs;
+}
+
 function reportAge(dateOfBirth: string, visitDate: string) {
   const birth = new Date(`${dateOfBirth}T00:00:00`);
   const visit = new Date(visitDate);
@@ -195,91 +226,127 @@ async function downloadEncounterPdfLegacy(encounter: PdfEncounter, athlete: PdfA
   const settings = await fetchReportSettings();
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const width = pdf.internal.pageSize.getWidth();
-  const margin = 16;
+  const margin = 18;
   const usable = width - margin * 2;
-  const green = [5, 78, 63] as const;
-  const mint = [236, 246, 241] as const;
-  const gold = [198, 157, 76] as const;
-  const ink = [28, 43, 37] as const;
-  const muted = [102, 118, 111] as const;
-  let y = 16;
+  const green = [5, 91, 68] as const;
+  const ink = [24, 31, 28] as const;
+  const muted = [83, 96, 90] as const;
+  let y = 18;
 
   const xFor = (position: ReportAssetPosition, assetWidth: number) => position === "left" ? margin : position === "center" ? (width - assetWidth) / 2 : width - margin - assetWidth;
   const resolveAsset = async (source: string) => {
     if (!source || source.startsWith("data:")) return source;
-    const blob = await fetch(source).then((response) => response.blob());
+    const response = await fetch(source, { cache: "force-cache" });
+    if (!response.ok) return "";
+    const blob = await response.blob();
     return await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob); });
   };
-  const addAsset = (source: string, position: ReportAssetPosition, top: number, assetWidth = 30, assetHeight = 14) => {
+  const addAsset = (source: string, position: ReportAssetPosition, top: number, assetWidth: number, assetHeight: number) => {
     if (!source) return;
-    try { pdf.addImage(source, source.includes("image/png") ? "PNG" : "JPEG", xFor(position, assetWidth), top, assetWidth, assetHeight, undefined, "FAST"); } catch { /* Unsupported image data is ignored safely. */ }
+    try { pdf.addImage(source, source.includes("image/png") ? "PNG" : "JPEG", xFor(position, assetWidth), top, assetWidth, assetHeight, undefined, "FAST"); } catch { /* Keep the report available if an optional asset cannot be decoded. */ }
   };
 
-  addAsset(await resolveAsset(settings.primaryLogo), settings.primaryLogoPosition, y, 36, 14);
-  addAsset(await resolveAsset(settings.secondaryLogo), settings.secondaryLogoPosition, y, 42, 14);
-  addAsset(await resolveAsset("/branding/sopcare-logo-v2.png"), "center", y, 76, 30);
-  pdf.setTextColor(...green); pdf.setFont("helvetica", "bold"); pdf.setFontSize(15);
-  pdf.text(settings.reportTitle || "Medical Report", width / 2, y + 38, { align: "center" });
-  pdf.setTextColor(...muted); pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5);
-  pdf.text(settings.organizationName || "Saudi Olympic and Paralympic Care", width / 2, y + 43, { align: "center" });
-  pdf.setDrawColor(...green); pdf.setLineWidth(0.8); pdf.line(margin, y + 49, width - margin, y + 49);
-  pdf.setDrawColor(...gold); pdf.setLineWidth(1.3); pdf.line(margin, y + 50.5, width - margin, y + 50.5);
-  y += 59;
+  const [primaryLogo, secondaryLogo] = await Promise.all([
+    resolveAsset(settings.primaryLogo || defaultReportSettings.primaryLogo),
+    resolveAsset(settings.secondaryLogo || defaultReportSettings.secondaryLogo),
+  ]);
+  addAsset(primaryLogo, settings.primaryLogoPosition || "left", y, 47, 19);
+  addAsset(secondaryLogo, settings.secondaryLogoPosition || "right", y - 2, 34, 22);
 
-  pdf.setFillColor(...green); pdf.roundedRect(margin, y, usable, 12, 2.5, 2.5, "F");
-  pdf.setTextColor(255, 255, 255); pdf.setFont("helvetica", "bold"); pdf.setFontSize(8);
-  pdf.text("ATHLETE IDENTITY", margin + 7, y + 7.5);
-  pdf.text("VISIT INFORMATION", margin + usable / 2 + 7, y + 7.5);
-  y += 17;
+  pdf.setTextColor(...ink); pdf.setFont("helvetica", "bold"); pdf.setFontSize(16);
+  pdf.text("Medical Report", width / 2, y + 28, { align: "center" });
+  y += 39;
 
-  const visitDate = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(encounter.encounterDate));
+  const visitDate = new Intl.DateTimeFormat("en-GB", { dateStyle: "short", timeStyle: "short", hour12: true, timeZone: "Asia/Riyadh" }).format(new Date(encounter.encounterDate));
   const info = [
-    ["VISIT DATE", visitDate],
-    ["ATHLETE NAME", `${athlete.firstName} ${athlete.lastName}`],
-    ["DATE OF BIRTH", reportDate(athlete.dateOfBirth)],
-    ["AGE", `${reportAge(athlete.dateOfBirth, encounter.encounterDate)} years`],
-    ["MEDICAL RECORD NUMBER", athlete.mrn],
-    ["SPORT / DISCIPLINE", `${athlete.sport}${athlete.discipline ? ` / ${athlete.discipline}` : ""}`],
-    ["CLINIC CITY", encounter.clinicCity || "Not recorded"],
-    ["REPORTER NAME", encounter.practitioner || "Not recorded"],
+    ["Visit date", visitDate],
+    ["Athlete name", `${athlete.firstName} ${athlete.lastName}`],
+    ["Date of birth", reportDate(athlete.dateOfBirth)],
+    ["Age", `${reportAge(athlete.dateOfBirth, encounter.encounterDate)} years`],
+    ["Sport / Discipline", `${athlete.sport}${athlete.discipline ? ` / ${athlete.discipline}` : ""}`],
+    ["Clinic City", encounter.clinicCity || "Not recorded"],
+    ["Reporter Name", encounter.practitioner || "Not recorded"],
   ];
-  const cardWidth = (usable - 3) / 2;
-  const cardHeight = 23;
-  info.forEach(([label, value], index) => {
-    const column = index % 2;
-    const row = Math.floor(index / 2);
-    const x = margin + column * (cardWidth + 3);
-    const cardY = y + row * (cardHeight + 3);
-    pdf.setFillColor(...mint); pdf.roundedRect(x, cardY, cardWidth, cardHeight, 2.5, 2.5, "F");
-    pdf.setTextColor(...muted); pdf.setFont("helvetica", "bold"); pdf.setFontSize(6.4); pdf.text(label, x + 5, cardY + 7);
-    pdf.setTextColor(...ink); pdf.setFontSize(8.5); pdf.setFont("helvetica", "bold");
-    pdf.text(pdf.splitTextToSize(value || "Not recorded", cardWidth - 10), x + 5, cardY + 15);
+  info.forEach(([label, value]) => {
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(10); pdf.setTextColor(...ink);
+    pdf.text(`${label}:`, margin, y);
+    const labelWidth = pdf.getTextWidth(`${label}: `);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(value || "Not recorded"), margin + labelWidth, y);
+    y += 5.6;
   });
-  y += cardHeight * 4 + 17;
+  y += 5;
 
-  const addSection = (title: string, body: string, accent = false) => {
-    const lines = pdf.splitTextToSize(body || "Not recorded.", usable - 16);
-    const height = Math.max(25, 15 + lines.length * 5);
-    if (y + height > 276) { pdf.addPage(); y = 18; }
-    pdf.setFillColor(...(accent ? [251, 248, 240] as const : [248, 251, 249] as const));
-    pdf.setDrawColor(...(accent ? gold : [215, 226, 220] as const));
-    pdf.roundedRect(margin, y, usable, height, 3, 3, "FD");
-    pdf.setTextColor(...(accent ? [119, 85, 22] as const : green)); pdf.setFont("helvetica", "bold"); pdf.setFontSize(7); pdf.text(title.toUpperCase(), margin + 7, y + 8);
-    pdf.setTextColor(...ink); pdf.setFont("helvetica", "normal"); pdf.setFontSize(9.5); pdf.text(lines, margin + 7, y + 16);
-    y += height + 7;
+  const newPage = () => {
+    pdf.addPage();
+    y = 20;
+  };
+  const addSection = (title: string, body: string) => {
+    const text = body || "Not recorded.";
+    const lines = pdf.splitTextToSize(text, usable);
+    const required = 14 + lines.length * 5.15;
+    if (y + required > 276) newPage();
+    pdf.setTextColor(...green); pdf.setFont("helvetica", "bold"); pdf.setFontSize(12.5);
+    pdf.text(title.toUpperCase(), margin, y);
+    y += 3;
+    pdf.setDrawColor(...green); pdf.setLineWidth(0.35); pdf.line(margin, y, width - margin, y);
+    y += 6;
+    pdf.setTextColor(...ink); pdf.setFont("helvetica", "normal"); pdf.setFontSize(10.5);
+    for (const line of lines) {
+      if (y > 276) newPage();
+      pdf.text(line, margin, y);
+      y += 5.15;
+    }
+    y += 6;
   };
 
-  addSection("Diagnosis", encounter.diagnosis || "No diagnosis recorded.", true);
-  addSection("Reason for visit / presenting concern", encounter.reason, true);
-  const history = plainText(encounter.plan) || plainText([encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).join(" "));
-  addSection("Clinical history", history || "No clinical history recorded.");
+  const addRichSection = (title: string, html: string) => {
+    if (y + 20 > 276) newPage();
+    pdf.setTextColor(...green); pdf.setFont("helvetica", "bold"); pdf.setFontSize(12.5);
+    pdf.text(title.toUpperCase(), margin, y);
+    y += 3;
+    pdf.setDrawColor(...green); pdf.setLineWidth(0.35); pdf.line(margin, y, width - margin, y);
+    y += 7;
+    const runs = richTextRuns(html);
+    if (!runs.length) { addSection("", "No clinical history recorded."); return; }
+    let x = margin;
+    for (const run of runs) {
+      const size = run.size || 10.5;
+      pdf.setFontSize(size);
+      pdf.setFont("helvetica", run.bold && run.italic ? "bolditalic" : run.bold ? "bold" : run.italic ? "italic" : "normal");
+      const colorMatch = run.color?.match(/^#([0-9a-f]{6})$/i);
+      if (colorMatch) {
+        const value = Number.parseInt(colorMatch[1], 16);
+        pdf.setTextColor((value >> 16) & 255, (value >> 8) & 255, value & 255);
+      } else pdf.setTextColor(...ink);
+      const words = run.text.split(/\s+/).filter(Boolean);
+      for (const word of words) {
+        const token = `${word} `;
+        const tokenWidth = pdf.getTextWidth(token);
+        if (x + tokenWidth > width - margin) { x = margin; y += Math.max(5.2, size * 0.5); }
+        if (y > 276) { newPage(); x = margin; }
+        pdf.text(token, x, y);
+        if (run.underline) { pdf.setDrawColor(pdf.getTextColor()); pdf.setLineWidth(0.18); pdf.line(x, y + 0.8, x + tokenWidth - 0.7, y + 0.8); }
+        x += tokenWidth;
+      }
+      if (run.breakAfter) { x = margin; y += Math.max(run.breakAfter, size * 0.52); }
+    }
+    y += 5;
+  };
 
-  if (settings.showStamp && settings.stamp) addAsset(await resolveAsset(settings.stamp), settings.stampPosition, Math.min(y + 2, 245), 34, 28);
+  const historyHtml = encounter.plan || [encounter.subjective, encounter.objective, encounter.assessment].filter(Boolean).map((value) => `<p>${reportText(plainText(value))}</p>`).join("");
+  addRichSection("History of present illness", historyHtml);
+  addSection("Diagnosis", encounter.diagnosis || "No diagnosis recorded.");
+  addSection("Reason for visit / presenting concern", encounter.reason || "Not recorded.");
+
+  if (settings.showStamp && settings.stamp) addAsset(await resolveAsset(settings.stamp), settings.stampPosition, Math.min(y + 2, 248), 34, 28);
   const pages = pdf.getNumberOfPages();
   for (let page = 1; page <= pages; page++) {
-    pdf.setPage(page); pdf.setDrawColor(220, 228, 224); pdf.line(margin, 284, width - margin, 284);
-    pdf.setTextColor(...muted); pdf.setFontSize(7); pdf.text("Generated securely by SOPCare", margin, 290);
+    pdf.setPage(page); pdf.setDrawColor(213, 222, 217); pdf.setLineWidth(0.25); pdf.line(margin, 284, width - margin, 284);
+    pdf.setTextColor(...muted); pdf.setFont("helvetica", "normal"); pdf.setFontSize(7);
+    pdf.text("SOPCare - Saudi Olympic and Paralympic Care", margin, 290);
     pdf.text(`Page ${page} of ${pages}`, width - margin, 290, { align: "right" });
   }
+
   pdf.save(`SOPCare-${athlete.mrn}-${encounter.id}.pdf`);
 }
