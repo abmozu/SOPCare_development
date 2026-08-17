@@ -182,6 +182,23 @@ async function ensureSotcRoster(db: ReturnType<typeof getD1>) {
 export async function ensureDatabase() {
   const db = getD1();
   await db.prepare("SELECT 1").run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS rehabilitation_measurements (
+    id text PRIMARY KEY,
+    session_id text NOT NULL REFERENCES rehabilitation_sessions(id),
+    plan_id text NOT NULL REFERENCES rehabilitation_plans(id),
+    metric_type text NOT NULL,
+    label text NOT NULL,
+    numeric_value double precision,
+    text_value text NOT NULL DEFAULT '',
+    unit text NOT NULL DEFAULT '',
+    context text NOT NULL DEFAULT '',
+    recorded_at text NOT NULL,
+    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_rehab_measurements_plan_date ON rehabilitation_measurements (plan_id, recorded_at)").run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_rehab_measurements_session ON rehabilitation_measurements (session_id)").run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_rehab_measurements_plan_metric ON rehabilitation_measurements (plan_id, metric_type, recorded_at)").run();
   await db.prepare(`CREATE TABLE IF NOT EXISTS portal_users (
     id text PRIMARY KEY,
     username text NOT NULL UNIQUE,
