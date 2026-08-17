@@ -124,7 +124,7 @@ export async function GET() {
           (SELECT COUNT(*) FROM rehabilitation_phases p WHERE p.plan_id = rp.id) AS phaseCount,
           (SELECT COUNT(*) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Completed') AS completedSessionCount,
           (SELECT MIN(rs.session_date) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Scheduled') AS nextSessionDate,
-          (SELECT MAX(rs.session_date) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Completed') AS lastFollowUpDate
+          (SELECT MAX(rs.session_date) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Completed' AND rs.session_date::timestamp <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Riyadh')) AS lastFollowUpDate
         FROM rehabilitation_plans rp
         JOIN injury_episodes i ON i.id = rp.injury_id
         JOIN athletes a ON a.id = i.athlete_id

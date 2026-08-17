@@ -37,6 +37,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (status === "Completed" && phaseProgress === null) {
       return Response.json({ error: "Completed sessions require the current phase progress." }, { status: 400 });
     }
+    if (status === "Completed" && new Date(sessionDate).getTime() > Date.now()) {
+      return Response.json({ error: "A completed session cannot be dated in the future." }, { status: 400 });
+    }
 
     const db = await ensureDatabase();
     const plan = await db.prepare("SELECT title, current_phase AS currentPhase, status FROM rehabilitation_plans WHERE id = ?")
