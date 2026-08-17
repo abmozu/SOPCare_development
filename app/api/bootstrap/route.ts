@@ -19,7 +19,7 @@ export async function GET() {
       specialty,
       clinicCity: actor.clinicCity,
     };
-    const [athletes, encounters, practitioners, activities, sports, teams, injuries, injuryHistory, rehabilitationPlans, rehabilitationPhases, rehabilitationExercises, rehabilitationSessions] = await Promise.all([
+    const [athletes, encounters, practitioners, activities, sports, teams, injuries, injuryHistory, rehabilitationPlans, rehabilitationPhases, rehabilitationExercises, rehabilitationSessions, rehabilitationMeasurements] = await Promise.all([
       db.prepare(`
         SELECT a.id, a.mrn, a.first_name AS firstName, a.last_name AS lastName,
           a.date_of_birth AS dateOfBirth, a.sex, a.nationality, a.discipline,
@@ -155,6 +155,13 @@ export async function GET() {
         JOIN users u ON u.id = pp.user_id
         ORDER BY rs.session_date DESC
       `).all(),
+      db.prepare(`
+        SELECT id, session_id AS sessionId, plan_id AS planId,
+          metric_type AS metricType, label, numeric_value AS numericValue,
+          text_value AS textValue, unit, context, recorded_at AS recordedAt
+        FROM rehabilitation_measurements
+        ORDER BY recorded_at DESC, created_at DESC
+      `).all(),
     ]);
 
     const athleteRows = athletes.results as Array<{ encounterDate?: string; followUpDate?: string; status: string }>;
@@ -180,6 +187,7 @@ export async function GET() {
       rehabilitationPhases: rehabilitationPhases.results,
       rehabilitationExercises: rehabilitationExercises.results,
       rehabilitationSessions: rehabilitationSessionRows,
+      rehabilitationMeasurements: rehabilitationMeasurements.results,
       stats: {
         activeAthletes: athleteRows.length,
         encountersThisWeek: encounterRows.filter((row) => String(row.encounterDate) >= weekStart.toISOString()).length,

@@ -22,6 +22,13 @@
       "when": 1786533600000,
       "tag": "0002_practitioner_clinic_defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786983272353,
+      "tag": "0003_silky_lockheed",
+      "breakpoints": true
     }
   ]
 }

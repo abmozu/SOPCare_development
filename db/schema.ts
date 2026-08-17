@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { doublePrecision, index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
 
 const timestamps = {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP::text`),
@@ -244,6 +244,24 @@ export const rehabilitationSessions = pgTable("rehabilitation_sessions", {
 }, (table) => [
   index("idx_rehab_sessions_plan_date").on(table.planId, table.sessionDate),
   index("idx_rehab_sessions_phase_date").on(table.phaseId, table.sessionDate),
+]);
+
+export const rehabilitationMeasurements = pgTable("rehabilitation_measurements", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => rehabilitationSessions.id),
+  planId: text("plan_id").notNull().references(() => rehabilitationPlans.id),
+  metricType: text("metric_type").notNull(),
+  label: text("label").notNull(),
+  numericValue: doublePrecision("numeric_value"),
+  textValue: text("text_value").notNull().default(""),
+  unit: text("unit").notNull().default(""),
+  context: text("context").notNull().default(""),
+  recordedAt: text("recorded_at").notNull(),
+  ...timestamps,
+}, (table) => [
+  index("idx_rehab_measurements_plan_date").on(table.planId, table.recordedAt),
+  index("idx_rehab_measurements_session").on(table.sessionId),
+  index("idx_rehab_measurements_plan_metric").on(table.planId, table.metricType, table.recordedAt),
 ]);
 
 export const auditLogs = pgTable("audit_logs", {
