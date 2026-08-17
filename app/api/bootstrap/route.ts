@@ -52,6 +52,12 @@ export async function GET() {
           u.full_name AS practitioner, pp.specialty,
           CASE WHEN u.id = ? OR u.email = ? THEN 1 ELSE 0 END AS canEdit,
           ie.injury_id AS injuryId, injury.title AS injuryTitle,
+          CASE WHEN ie.injury_id IS NOT NULL AND e.id = (
+            SELECT linked.encounter_id FROM injury_encounters linked
+            JOIN encounters linked_encounter ON linked_encounter.id = linked.encounter_id
+            WHERE linked.injury_id = ie.injury_id
+            ORDER BY linked_encounter.encounter_date ASC, linked.id ASC LIMIT 1
+          ) THEN 1 ELSE 0 END AS injuryOrigin,
           (SELECT COUNT(*) FROM encounter_amendments ea WHERE ea.encounter_id = e.id) AS amendmentCount
         FROM encounters e
         JOIN practitioner_profiles pp ON pp.id = e.practitioner_id
@@ -117,7 +123,8 @@ export async function GET() {
           phase.progress AS currentPhaseProgress, phase.exit_criteria AS currentExitCriteria,
           (SELECT COUNT(*) FROM rehabilitation_phases p WHERE p.plan_id = rp.id) AS phaseCount,
           (SELECT COUNT(*) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Completed') AS completedSessionCount,
-          (SELECT MIN(rs.session_date) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Scheduled') AS nextSessionDate
+          (SELECT MIN(rs.session_date) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Scheduled') AS nextSessionDate,
+          (SELECT MAX(rs.session_date) FROM rehabilitation_sessions rs WHERE rs.plan_id = rp.id AND rs.status = 'Completed') AS lastFollowUpDate
         FROM rehabilitation_plans rp
         JOIN injury_episodes i ON i.id = rp.injury_id
         JOIN athletes a ON a.id = i.athlete_id

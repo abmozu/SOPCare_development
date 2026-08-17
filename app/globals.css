@@ -375,6 +375,7 @@ body { font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif; text-render
 .visit-card-copy strong { font-size: 14px; font-weight: 800; letter-spacing: .01em; }
 .visit-card-copy small { font-size: 12px; font-weight: 750; }
 .visit-card-copy p { color: #4e6259; font-size: 12px; line-height: 1.6; }
+.encounter-kind { display: inline-flex; width: fit-content; margin-top: 9px; padding: 3px 7px; border-radius: 999px; color: #5b7167; background: #edf4f0; font-size: 9px; font-style: normal; font-weight: 850; letter-spacing: .035em; text-transform: uppercase; }.encounter-kind.injury { color: #a72e39; background: #fdecee; }.encounter-kind.followup { color: #8a681f; background: #fff3d8; }.encounter-kind.new { color: #167454; background: #e8f6ef; }
 .medical-file-filters label, .chronology-mark, .free-text-chip { font-size: 11px; font-weight: 750; }
 .consultation-meta > span { color: #30443b; font-size: 12px; font-weight: 700; line-height: 1.45; }
 .consultation-meta small, .chief-complaint span { color: #63736c; font-size: 10px; font-weight: 800; }
