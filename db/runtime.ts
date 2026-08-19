@@ -179,8 +179,9 @@ async function ensureSotcRoster(db: ReturnType<typeof getD1>) {
   }
 }
 
-export async function ensureDatabase() {
-  const db = getD1();
+let databaseInitialization: Promise<void> | null = null;
+
+async function initializeDatabase(db: ReturnType<typeof getD1>) {
   await db.prepare("SELECT 1").run();
   await db.prepare(`CREATE TABLE IF NOT EXISTS rehabilitation_measurements (
     id text PRIMARY KEY,
@@ -281,7 +282,7 @@ export async function ensureDatabase() {
     runtime.APP_ENV === "development" &&
     runtime.SOPCARE_ENABLE_DEV_SEED === "true";
 
-  if (!seedEnabled) return db;
+  if (!seedEnabled) return;
 
   const count = await db.prepare("SELECT COUNT(*) AS count FROM athletes").first<{ count: number }>();
   if ((count?.count ?? 0) === 0) {
@@ -299,6 +300,17 @@ export async function ensureDatabase() {
   if ((encounterMetadataCount?.count ?? 0) === 0) {
     await db.batch(encounterMetadataSeedStatements.map(([statement, ...values]) => db.prepare(String(statement)).bind(...values)));
   }
+}
+
+export async function ensureDatabase() {
+  const db = getD1();
+  if (!databaseInitialization) {
+    databaseInitialization = initializeDatabase(db).catch((error) => {
+      databaseInitialization = null;
+      throw error;
+    });
+  }
+  await databaseInitialization;
   return db;
 }
 

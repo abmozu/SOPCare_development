@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { AccessRole, AuditEntry, Permission, PortalUser, ProfessionalRole, Workspace } from "./access-model";
 import { defaultReportSettings, fetchReportSettings, persistReportSettings, ReportAssetPosition, ReportSettings } from "./reporting";
 import ProjectLogo from "./ProjectLogo";
@@ -128,14 +128,23 @@ function RolesPermissionsV2({ data, setData, notify }: PageProps) {
   const [overrideUser, setOverrideUser] = useState<PortalUser | null>(null);
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
+  const queuedPermissions = useRef<Record<string, string[]>>({});
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const role = data.roles.find((item) => item.id === selected);
-  const saveRolePermissions = async (permissionId: string) => {
-    if (!role || busy) return;
+  const flushRolePermissions = async (roleId: string) => {
+    const permissionIds = queuedPermissions.current[roleId];
+    if (!permissionIds) return;
+    delete queuedPermissions.current[roleId];
+    try { await changeAccessConfig("PATCH", { kind: "access_role", id: roleId, permissionIds }); notify("Role permissions saved"); }
+    catch (error) { await loadAdministrationData(setData); notify(error instanceof Error ? error.message : "Unable to save role permissions. Your view was refreshed."); }
+  };
+  const saveRolePermissions = (permissionId: string) => {
+    if (!role) return;
     const next = role.permissionIds.includes(permissionId) ? role.permissionIds.filter((id) => id !== permissionId) : [...role.permissionIds, permissionId];
-    setBusy(true);
-    try { await changeAccessConfig("PATCH", { kind: "access_role", id: role.id, permissionIds: next }); await loadAdministrationData(setData); notify("Role permissions saved and applied to assigned users"); }
-    catch (error) { notify(error instanceof Error ? error.message : "Unable to update role permissions."); }
-    finally { setBusy(false); }
+    setData((current) => current ? { ...current, roles: current.roles.map((item) => item.id === role.id ? { ...item, permissionIds: next } : item) } : current);
+    queuedPermissions.current[role.id] = next;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => { void flushRolePermissions(role.id); }, 350);
   };
   const createRole = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -161,7 +170,7 @@ function RolesPermissionsV2({ data, setData, notify }: PageProps) {
     catch (error) { notify(error instanceof Error ? error.message : "Unable to save individual permissions."); }
     finally { setBusy(false); }
   };
-  return <><Heading eyebrow="ACCESS CONTROL" title="Roles & Permissions" text="Every option below is connected to an active SOPCare feature and enforced by the server." action={<button className="button primary" disabled={busy} onClick={() => setCreating(true)}>＋ Create Access Role</button>} /><div className="permissions-layout"><section className="panel role-list">{data.roles.map((item) => <button key={item.id} className={selected === item.id ? "active" : ""} onClick={() => setSelected(item.id)}><span><strong>{item.name}</strong><small>{item.description}</small></span><b>{item.userCount}</b></button>)}</section><section className="panel permission-editor">{role && <><div className="permission-head"><div><p className="section-kicker">ROLE CONFIGURATION</p><h2>{role.name}</h2><p>{role.description}</p></div><button className="danger-outline" disabled={busy} onClick={() => void removeRole()}>Delete role</button></div><PermissionGroups permissions={data.permissions} selected={role.permissionIds} onToggle={(id) => void saveRolePermissions(id)} /></>}</section></div><section className="panel overrides-panel"><p className="section-kicker">USER-SPECIFIC ACCESS</p><h2>Individual exceptions</h2><p>Use this only when one account needs access different from its assigned Access Role.</p>{data.users.map((item) => <div className="override-row" key={item.id}><AdminAvatar name={item.fullName} /><span><strong>{item.fullName}</strong><small>{item.roleIds.map((id) => data.roles.find((roleItem) => roleItem.id === id)?.name).filter(Boolean).join(", ") || "No access role"}</small></span><b>{item.permissionOverrides.grant.length} grants · {item.permissionOverrides.revoke.length} revocations</b><button onClick={() => setOverrideUser(item)}>Customize</button></div>)}</section>{creating && <SimpleModal title="Create Access Role" onClose={() => setCreating(false)} onSubmit={createRole} wide><Field name="name" label="Access Role Name" /><Field name="description" label="Description" /></SimpleModal>}{overrideUser && <SimpleModal title={`Customize ${overrideUser.fullName}`} onClose={() => setOverrideUser(null)} onSubmit={saveOverride} wide><div className="span-2"><PermissionGroups permissions={data.permissions} selected={overrideUser.permissionIds} inputPrefix="override_" /></div></SimpleModal>}</>;
+  return <><Heading eyebrow="ACCESS CONTROL" title="Roles & Permissions" text="Every option below is connected to an active SOPCare feature and enforced by the server." action={<button className="button primary" disabled={busy} onClick={() => setCreating(true)}>＋ Create Access Role</button>} /><div className="permissions-layout"><section className="panel role-list">{data.roles.map((item) => <button key={item.id} className={selected === item.id ? "active" : ""} onClick={() => setSelected(item.id)}><span><strong>{item.name}</strong><small>{item.description}</small></span><b>{item.userCount}</b></button>)}</section><section className="panel permission-editor">{role && <><div className="permission-head"><div><p className="section-kicker">ROLE CONFIGURATION</p><h2>{role.name}</h2><p>{role.description}</p></div><button className="danger-outline" disabled={busy} onClick={() => void removeRole()}>Delete role</button></div><PermissionGroups permissions={data.permissions} selected={role.permissionIds} onToggle={saveRolePermissions} /></>}</section></div><section className="panel overrides-panel"><p className="section-kicker">USER-SPECIFIC ACCESS</p><h2>Individual exceptions</h2><p>Use this only when one account needs access different from its assigned Access Role.</p>{data.users.map((item) => <div className="override-row" key={item.id}><AdminAvatar name={item.fullName} /><span><strong>{item.fullName}</strong><small>{item.roleIds.map((id) => data.roles.find((roleItem) => roleItem.id === id)?.name).filter(Boolean).join(", ") || "No access role"}</small></span><b>{item.permissionOverrides.grant.length} grants · {item.permissionOverrides.revoke.length} revocations</b><button onClick={() => setOverrideUser(item)}>Customize</button></div>)}</section>{creating && <SimpleModal title="Create Access Role" onClose={() => setCreating(false)} onSubmit={createRole} wide><Field name="name" label="Access Role Name" /><Field name="description" label="Description" /></SimpleModal>}{overrideUser && <SimpleModal title={`Customize ${overrideUser.fullName}`} onClose={() => setOverrideUser(null)} onSubmit={saveOverride} wide><div className="span-2"><PermissionGroups permissions={data.permissions} selected={overrideUser.permissionIds} inputPrefix="override_" /></div></SimpleModal>}</>;
 }
 
 function ProfessionalRolesV2({ data, setData, notify }: PageProps) {
