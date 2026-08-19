@@ -1,5 +1,5 @@
-import { PROFESSIONAL_ROLES, publicUser, type PortalUser } from "../../../access-model";
-import { hashPassword, getPortalUser } from "../../../mock-auth";
+import { publicUser, type PortalUser } from "../../../access-model";
+import { configuredAccessRoles, configuredProfessionalRoles, hashPassword, getPortalUser } from "../../../mock-auth";
 import { ensureDatabase, writeAudit } from "../../../../db/runtime";
 
 function array(value: unknown) {
@@ -17,9 +17,12 @@ export async function POST(request: Request) {
     const email = String(body.email ?? "").trim().toLowerCase();
     const professionalRoleId = String(body.professionalRoleId ?? "");
     const clinicCity = String(body.clinicCity ?? "");
-    const professionalRole = PROFESSIONAL_ROLES.find((role) => role.id === professionalRoleId);
+    const accessRoleId = String(body.accessRoleId ?? "");
+    const [professionalRoles, accessRoles] = await Promise.all([configuredProfessionalRoles(), configuredAccessRoles()]);
+    const professionalRole = professionalRoles.find((role) => role.id === professionalRoleId && role.active);
+    const accessRole = accessRoles.find((role) => role.id === accessRoleId);
     const workspaceIds = array(body.workspaceIds).filter((id) => id === "administration" || id === "healthcare");
-    if (!fullName || !/^[a-z0-9._-]{3,80}$/i.test(username) || password.length < 6 || !/^\S+@\S+\.\S+$/.test(email) || !professionalRole || !["Riyadh", "Jeddah", "Dammam"].includes(clinicCity) || workspaceIds.length === 0) {
+    if (!fullName || !/^[a-z0-9._-]{3,80}$/i.test(username) || password.length < 6 || !/^\S+@\S+\.\S+$/.test(email) || !professionalRole || !accessRole || !["Riyadh", "Jeddah", "Dammam"].includes(clinicCity) || workspaceIds.length === 0) {
       return Response.json({ error: "Complete all required user details. Passwords must contain at least 6 characters." }, { status: 400 });
     }
     const db = await ensureDatabase();
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
       professionalRoleId, professionalRole: professionalRole.name, clinicCity: clinicCity as PortalUser["clinicCity"],
       jobTitle: String(body.jobTitle ?? "").trim(), department: String(body.department ?? "").trim(),
       status: body.status === "Inactive" ? "Inactive" : "Active", workspaceIds,
-      roleIds: ["role-clinician"], permissionIds: professionalRole.defaultPermissionIds,
+      roleIds: [accessRole.id], permissionIds: accessRole.permissionIds,
       permissionOverrides: { grant: [], revoke: [] }, lastActive: new Date().toISOString(),
     };
     if (existing) {

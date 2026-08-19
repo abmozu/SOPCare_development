@@ -67,17 +67,16 @@ export const PERMISSIONS: Permission[] = [
   { id: "athletes.edit", name: "Edit Athletes", group: "Athlete Permissions", description: "Update athlete demographics and status." },
   { id: "athletes.delete", name: "Delete Athletes", group: "Athlete Permissions", description: "Remove athlete profiles." },
   { id: "clinical.records.view", name: "View Medical Records", group: "Clinical Permissions", description: "Read multidisciplinary medical records." },
-  { id: "clinical.notes.create", name: "Create Clinical Notes", group: "Clinical Permissions", description: "Create encounters and clinical notes." },
-  { id: "clinical.notes.edit", name: "Edit Clinical Notes", group: "Clinical Permissions", description: "Amend the user's clinical notes." },
-  { id: "clinical.documents.upload", name: "Upload Medical Documents", group: "Clinical Permissions", description: "Attach clinical documents to records." },
-  { id: "admin.users.manage", name: "Manage Users", group: "Administration Permissions", description: "Create, update, suspend, and reset users." },
+  { id: "clinical.notes.create", name: "Create Clinical Care Records", group: "Clinical Permissions", description: "Create encounters, injury episodes, rehabilitation plans, and sessions." },
+  { id: "clinical.notes.edit", name: "Update Clinical Care Records", group: "Clinical Permissions", description: "Amend encounters and update injury or rehabilitation pathways." },
+  { id: "admin.users.manage", name: "Manage Users", group: "Administration Permissions", description: "Create, update, suspend, and delete user accounts." },
   { id: "admin.professional_roles.manage", name: "Manage Professional Roles", group: "Administration Permissions", description: "Maintain the professional role directory." },
   { id: "admin.permissions.manage", name: "Manage Permissions", group: "Administration Permissions", description: "Maintain roles, permissions, and overrides." },
   { id: "admin.audit.view", name: "View Audit Logs", group: "Administration Permissions", description: "Review sensitive system actions." },
-  { id: "admin.settings.manage", name: "Manage System Settings", group: "Administration Permissions", description: "Configure organization and report settings." },
+  { id: "admin.settings.manage", name: "Manage Reports & Branding", group: "Administration Permissions", description: "Configure the medical report template, logos, and stamp." },
 ];
 
-const clinicalDefaults = ["athletes.view", "clinical.records.view", "clinical.notes.create", "clinical.notes.edit", "clinical.documents.upload"];
+const clinicalDefaults = ["athletes.view", "clinical.records.view", "clinical.notes.create", "clinical.notes.edit"];
 
 export const PROFESSIONAL_ROLES: ProfessionalRole[] = [
   { id: "pr-sports-medicine", name: "Sports Medicine Physician", description: "Sports medicine assessment, diagnosis, and return-to-sport care.", defaultPermissionIds: clinicalDefaults, active: true },

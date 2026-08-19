@@ -234,6 +234,35 @@ export async function ensureDatabase() {
     updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
   )`).run();
   await db.prepare("ALTER TABLE user_directory_overrides ADD COLUMN IF NOT EXISTS phone_number text NOT NULL DEFAULT ''").run();
+  await db.prepare("ALTER TABLE user_directory_overrides ADD COLUMN IF NOT EXISTS role_ids text NOT NULL DEFAULT '[]'").run();
+  await db.prepare("ALTER TABLE user_directory_overrides ADD COLUMN IF NOT EXISTS permission_overrides text NOT NULL DEFAULT '{\"grant\":[],\"revoke\":[]}'").run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS access_role_configs (
+    id text PRIMARY KEY,
+    name text NOT NULL UNIQUE,
+    description text NOT NULL DEFAULT '',
+    permission_ids text NOT NULL DEFAULT '[]',
+    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS professional_role_configs (
+    id text PRIMARY KEY,
+    name text NOT NULL UNIQUE,
+    description text NOT NULL DEFAULT '',
+    active integer NOT NULL DEFAULT 1,
+    created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+    updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP::text
+  )`).run();
+  await db.batch([
+    db.prepare("INSERT OR IGNORE INTO access_role_configs (id, name, description, permission_ids) VALUES (?, ?, ?, ?)").bind("role-admin", "System Administrator", "Full SOPCare administration and clinical access.", JSON.stringify(["athletes.view","athletes.create","athletes.edit","athletes.delete","clinical.records.view","clinical.notes.create","clinical.notes.edit","admin.users.manage","admin.professional_roles.manage","admin.permissions.manage","admin.audit.view","admin.settings.manage"])),
+    db.prepare("INSERT OR IGNORE INTO access_role_configs (id, name, description, permission_ids) VALUES (?, ?, ?, ?)").bind("role-clinician", "Clinical Practitioner", "Standard multidisciplinary clinical access.", JSON.stringify(["athletes.view","clinical.records.view","clinical.notes.create","clinical.notes.edit"])),
+    db.prepare("INSERT OR IGNORE INTO access_role_configs (id, name, description, permission_ids) VALUES (?, ?, ?, ?)").bind("role-readonly", "Clinical Viewer", "Read-only athlete and medical record access.", JSON.stringify(["athletes.view","clinical.records.view"])),
+    db.prepare("INSERT OR IGNORE INTO professional_role_configs (id, name, description, active) VALUES (?, ?, ?, 1)").bind("pr-sports-medicine", "Sports Medicine Physician", "Sports medicine assessment, diagnosis, and return-to-sport care."),
+    db.prepare("INSERT OR IGNORE INTO professional_role_configs (id, name, description, active) VALUES (?, ?, ?, 1)").bind("pr-family", "Family Physician", "Primary and family medicine within athlete care."),
+    db.prepare("INSERT OR IGNORE INTO professional_role_configs (id, name, description, active) VALUES (?, ?, ?, 1)").bind("pr-physio", "Physiotherapist", "Rehabilitation, function, and movement care."),
+    db.prepare("INSERT OR IGNORE INTO professional_role_configs (id, name, description, active) VALUES (?, ?, ?, 1)").bind("pr-nutrition", "Sports Nutritionist", "Performance nutrition and athlete wellbeing."),
+    db.prepare("INSERT OR IGNORE INTO professional_role_configs (id, name, description, active) VALUES (?, ?, ?, 1)").bind("pr-psychology", "Sports Psychologist", "Mental health and performance psychology."),
+    db.prepare("INSERT OR IGNORE INTO professional_role_configs (id, name, description, active) VALUES (?, ?, ?, 1)").bind("pr-performance", "Performance Therapist", "Integrated performance therapy and recovery.")
+  ]);
   await db.prepare(`CREATE TABLE IF NOT EXISTS report_settings (
     id text PRIMARY KEY,
     settings_json text NOT NULL DEFAULT '{}',

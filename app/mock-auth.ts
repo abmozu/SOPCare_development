@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { MOCK_USERS, publicUser, type PortalUser } from "./access-model";
+import { ACCESS_ROLES, MOCK_USERS, PROFESSIONAL_ROLES, publicUser, type AccessRole, type PortalUser, type ProfessionalRole } from "./access-model";
 import { ensureDatabase } from "../db/runtime";
 
 const COOKIE_NAME = "sopcare_session";
@@ -44,17 +44,44 @@ function portalUser(row: StoredPortalUser): PortalUser {
   return { id: row.id, username: row.username, email: row.email, fullName: row.full_name, phoneNumber: row.phone_number, professionalRoleId: row.professional_role_id, professionalRole: row.professional_role, clinicCity: row.clinic_city ?? "Riyadh", jobTitle: row.job_title, department: row.department, status: row.status, workspaceIds: parseList(row.workspace_ids) as PortalUser["workspaceIds"], roleIds: parseList(row.role_ids), permissionIds: parseList(row.permission_ids), permissionOverrides: parseOverrides(row.permission_overrides), lastActive: row.last_active };
 }
 
-type DirectoryOverride = { user_id: string; professional_role_id: string; professional_role: string; clinic_city: PortalUser["clinicCity"]; phone_number: string; job_title: string; department: string; status: PortalUser["status"]; workspace_ids: string };
+type DirectoryOverride = { user_id: string; professional_role_id: string; professional_role: string; clinic_city: PortalUser["clinicCity"]; phone_number: string; job_title: string; department: string; status: PortalUser["status"]; workspace_ids: string; role_ids: string; permission_overrides: string };
 function applyDirectoryOverride(user: PortalUser, override?: DirectoryOverride): PortalUser {
-  return override ? { ...user, professionalRoleId: override.professional_role_id, professionalRole: override.professional_role, clinicCity: override.clinic_city, phoneNumber: override.phone_number || user.phoneNumber, jobTitle: override.job_title, department: override.department, status: override.status, workspaceIds: parseList(override.workspace_ids) as PortalUser["workspaceIds"] } : user;
+  if (!override) return user;
+  const roleIds = parseList(override.role_ids);
+  return { ...user, professionalRoleId: override.professional_role_id, professionalRole: override.professional_role, clinicCity: override.clinic_city, phoneNumber: override.phone_number || user.phoneNumber, jobTitle: override.job_title, department: override.department, status: override.status, workspaceIds: parseList(override.workspace_ids) as PortalUser["workspaceIds"], roleIds: roleIds.length ? roleIds : user.roleIds, permissionOverrides: parseOverrides(override.permission_overrides) };
+}
+
+type StoredAccessRole = { id: string; name: string; description: string; permission_ids: string };
+type StoredProfessionalRole = { id: string; name: string; description: string; active: number };
+
+export async function configuredAccessRoles(): Promise<AccessRole[]> {
+  const db = await ensureDatabase();
+  const rows = await db.prepare("SELECT id, name, description, permission_ids FROM access_role_configs ORDER BY name").all<StoredAccessRole>();
+  return rows.results.length ? rows.results.map((row) => ({ id: row.id, name: row.name, description: row.description, permissionIds: parseList(row.permission_ids), userCount: 0 })) : ACCESS_ROLES;
+}
+
+export async function configuredProfessionalRoles(): Promise<ProfessionalRole[]> {
+  const db = await ensureDatabase();
+  const rows = await db.prepare("SELECT id, name, description, active FROM professional_role_configs ORDER BY name").all<StoredProfessionalRole>();
+  return rows.results.length ? rows.results.map((row) => ({ id: row.id, name: row.name, description: row.description, active: Boolean(row.active), defaultPermissionIds: [] })) : PROFESSIONAL_ROLES.map((role) => ({ ...role, defaultPermissionIds: [] }));
+}
+
+function applyConfiguredAccess(user: PortalUser, roles: AccessRole[], professionalRoles: ProfessionalRole[]) {
+  const rolePermissions = user.roleIds.flatMap((id) => roles.find((role) => role.id === id)?.permissionIds ?? []);
+  const professionalRole = professionalRoles.find((role) => role.id === user.professionalRoleId);
+  return publicUser({ ...user, professionalRole: professionalRole?.name ?? user.professionalRole, permissionIds: rolePermissions.length || user.roleIds.length ? Array.from(new Set(rolePermissions)) : user.permissionIds });
 }
 
 export async function directoryUsers() {
   const db = await ensureDatabase();
-  const overrides = await db.prepare("SELECT user_id, professional_role_id, professional_role, clinic_city, phone_number, job_title, department, status, workspace_ids FROM user_directory_overrides").all<DirectoryOverride>();
+  const [overrides, roles, professionalRoles] = await Promise.all([
+    db.prepare("SELECT user_id, professional_role_id, professional_role, clinic_city, phone_number, job_title, department, status, workspace_ids, role_ids, permission_overrides FROM user_directory_overrides").all<DirectoryOverride>(),
+    configuredAccessRoles(),
+    configuredProfessionalRoles(),
+  ]);
   const byId = new Map(overrides.results.map((item) => [item.user_id, item]));
   const stored = await storedPortalUsers();
-  return [...stored.map((user) => applyDirectoryOverride(user, byId.get(user.id))), ...MOCK_USERS.map((user) => applyDirectoryOverride(user, byId.get(user.id)))];
+  return [...stored.map((user) => applyConfiguredAccess(applyDirectoryOverride(user, byId.get(user.id)), roles, professionalRoles)), ...MOCK_USERS.map((user) => applyConfiguredAccess(applyDirectoryOverride(user, byId.get(user.id)), roles, professionalRoles))];
 }
 
 async function storedPortalUserRows() {
@@ -80,12 +107,16 @@ export function clearSessionCookie() {
 export async function authenticate(username: string, password: string) {
   const normalized = username.trim().toLowerCase();
   const stored = (await storedPortalUserRows()).find((candidate) => candidate.username.toLowerCase() === normalized);
-  if (stored) return stored.status === "Active" && stored.password_hash === await hashPassword(password) ? publicUser(portalUser(stored)) : null;
+  if (stored) {
+    if (stored.status !== "Active" || stored.password_hash !== await hashPassword(password)) return null;
+    return (await directoryUsers()).find((candidate) => candidate.id === stored.id) ?? publicUser(portalUser(stored));
+  }
   const configuredPassword = process.env.SOPCARE_MOCK_PASSWORD;
   if (!configuredPassword) throw new Error("SOPCARE_MOCK_PASSWORD is required for prototype authentication.");
   const user = MOCK_USERS.find((candidate) => candidate.username.toLowerCase() === normalized);
   if (!user || await hashPassword(configuredPassword) !== await hashPassword(password) || user.status !== "Active") return null;
-  return publicUser(user);
+  const configuredUser = (await directoryUsers()).find((candidate) => candidate.id === user.id) ?? publicUser(user);
+  return configuredUser.status === "Active" ? configuredUser : null;
 }
 
 export async function getPortalUser(): Promise<PortalUser | null> {
