@@ -716,3 +716,7 @@ input::placeholder, textarea::placeholder { color: #53685e; opacity: 1; font-wei
 .cell-sub, .athlete-cell small, .override-row small, .role-list small, .permission-groups label small, .workspace-access small, .choice-row small { color: #4d6359 !important; }
 .history-content, .encounter-history-content, .amendment-content, .rich-document, .tiptap-prose { color: #152a21; font-weight: 450; }
 .tiptap-prose p.is-editor-empty:first-child::before, .rich-history-input .history-content:empty::before { color: #52695e; }
+.editing-user-identity { min-height: 66px; padding: 12px 14px; display: flex; align-items: center; gap: 11px; border: 1px solid #a9cbbb; border-radius: 11px; background: #eef8f3; }
+.editing-user-identity strong, .editing-user-identity small { display: block; }
+.editing-user-identity strong { color: #123e30; font-size: 13px; }
+.editing-user-identity small { margin-top: 4px; color: #496358 !important; font-size: 11px; }

@@ -1,4 +1,4 @@
-import { configuredAccessRoles, configuredProfessionalRoles, getPortalUser } from "../../../../mock-auth";
+import { configuredAccessRoles, configuredProfessionalRoles, directoryUsers, getPortalUser } from "../../../../mock-auth";
 import { ensureDatabase, writeAudit } from "../../../../../db/runtime";
 import { type PortalUser } from "../../../../access-model";
 
@@ -21,6 +21,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const status = body.status === "Inactive" ? "Inactive" : "Active";
     const workspaceIds = Array.isArray(body.workspaceIds) ? body.workspaceIds.filter((item): item is string => item === "administration" || item === "healthcare") : [];
     if (!role || !accessRole || !cities.includes(clinicCity) || workspaceIds.length === 0) return Response.json({ error: "Select a professional role, access role, city, and workspace access." }, { status: 400 });
+    const users = await directoryUsers();
+    const target = users.find((user) => user.id === id);
+    if (!target) return Response.json({ error: "The selected user account no longer exists." }, { status: 404 });
+    const workspaceChanged = [...workspaceIds].sort().join(",") !== [...actor.workspaceIds].sort().join(",");
+    const roleChanged = accessRole.id !== actor.roleIds[0];
+    if (id === actor.id && (workspaceChanged || roleChanged || status !== actor.status)) {
+      return Response.json({ error: "For safety, you cannot change your own access role, workspace access, or account status from User Management." }, { status: 400 });
+    }
+    const removesAdministratorAccess = target.status === "Active" && target.workspaceIds.includes("administration") && target.roleIds.includes("role-admin") && (status !== "Active" || !workspaceIds.includes("administration") || accessRole.id !== "role-admin");
+    const anotherAdministratorExists = users.some((user) => user.id !== id && user.status === "Active" && user.workspaceIds.includes("administration") && user.roleIds.includes("role-admin"));
+    if (removesAdministratorAccess && !anotherAdministratorExists) {
+      return Response.json({ error: "SOPCare must retain at least one active System Administrator with Administration workspace access." }, { status: 400 });
+    }
     const db = await ensureDatabase();
     const stored = await db.prepare("SELECT id FROM portal_users WHERE id = ?").bind(id).first<{ id: string }>();
     if (stored) {
