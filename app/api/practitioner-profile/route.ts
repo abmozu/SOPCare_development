@@ -14,7 +14,7 @@ async function ensurePractitioner(actor: Exclude<Awaited<ReturnType<typeof requi
 }
 
 export async function PATCH(request: Request) {
-  const actor = await requireApiActor("clinical.notes.create");
+  const actor = await requireApiActor("clinical.records.view");
   if (actor instanceof Response) return actor;
   try {
     const payload = await request.json() as Record<string, unknown>;

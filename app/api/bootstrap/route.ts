@@ -165,7 +165,8 @@ export async function GET() {
     ]);
 
     const athleteRows = athletes.results as Array<{ encounterDate?: string; followUpDate?: string; status: string }>;
-    const encounterRows = encounters.results as Array<{ encounterDate: string }>;
+    const encounterRows = encounters.results as Array<{ encounterDate: string; canEdit: number }>;
+    const visibleEncounterRows = encounterRows.map((row) => ({ ...row, canEdit: actor.permissions.includes("clinical.notes.edit") ? row.canEdit : 0 }));
     const injuryRows = injuries.results as Array<{ stage: string }>;
     const rehabilitationRows = rehabilitationPlans.results as Array<{ status: string; nextReviewDate?: string; currentPhaseProgress: number }>;
     const rehabilitationSessionRows = rehabilitationSessions.results as Array<{ status: string; sessionDate: string }>;
@@ -176,7 +177,7 @@ export async function GET() {
     return Response.json({
       actor: resolvedActor,
       athletes: athleteRows,
-      encounters: encounterRows,
+      encounters: visibleEncounterRows,
       practitioners: practitioners.results,
       activities: activities.results,
       sports: sports.results,

@@ -26,15 +26,20 @@ export async function GET() {
   ]);
   const roles = configuredRoles.map((role) => ({ ...role, userCount: storedUsers.filter((user) => user.roleIds.includes(role.id)).length }));
   const auditLogs = auditRows.results.map((entry) => ({ id: entry.id, username: storedUsers.find((user) => user.id === entry.actorId)?.username ?? "system", action: entry.action, target: entry.target, createdAt: entry.createdAt }));
+  const mayManageUsers = actor.permissionIds.includes("admin.users.manage");
+  const mayManagePermissions = actor.permissionIds.includes("admin.permissions.manage");
+  const mayManageProfessionalRoles = actor.permissionIds.includes("admin.professional_roles.manage");
+  const mayViewAthletes = actor.permissionIds.includes("athletes.view");
+  const mayViewAudit = actor.permissionIds.includes("admin.audit.view");
   return Response.json({
-    users: storedUsers.map(publicUser),
+    users: mayManageUsers || mayManagePermissions ? storedUsers.map(publicUser) : [],
     workspaces: WORKSPACES,
     permissions: PERMISSIONS,
-    professionalRoles,
-    roles,
-    auditLogs,
-    athletes: athletes.results,
-    sports: sports.results,
-    teams: teams.results,
+    professionalRoles: mayManageUsers || mayManageProfessionalRoles ? professionalRoles : [],
+    roles: mayManageUsers || mayManagePermissions ? roles : [],
+    auditLogs: mayViewAudit ? auditLogs : [],
+    athletes: mayViewAthletes ? athletes.results : [],
+    sports: mayViewAthletes ? sports.results : [],
+    teams: mayViewAthletes ? teams.results : [],
   });
 }

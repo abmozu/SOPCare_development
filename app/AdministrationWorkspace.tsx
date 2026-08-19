@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import type { AccessRole, AuditEntry, Permission, PortalUser, ProfessionalRole, Workspace } from "./access-model";
+import { togglePermissionId, type AccessRole, type AuditEntry, type Permission, type PortalUser, type ProfessionalRole, type Workspace } from "./access-model";
 import { defaultReportSettings, fetchReportSettings, persistReportSettings, ReportAssetPosition, ReportSettings } from "./reporting";
 import ProjectLogo from "./ProjectLogo";
 
@@ -56,9 +56,14 @@ function Heading({ eyebrow, title, text, action }: { eyebrow: string; title: str
 function AccessDenied({ message = "You do not have permission to access this page.", onLogout }: { message?: string; onLogout: () => void }) { return <main className="error-screen"><div className="access-lock">×</div><h1>Access restricted</h1><p>{message}</p><button className="button primary" onClick={onLogout}>Return to sign in</button></main>; }
 function logAction(data: AdminData, username: string, action: string, target: string): AdminData { return { ...data, auditLogs: [{ id: crypto.randomUUID(), username, action, target, createdAt: new Date().toISOString() }, ...data.auditLogs] }; }
 
-function Dashboard({ data, onNavigate }: PageProps & { onNavigate: (page: string) => void }) {
+function Dashboard({ data, user, onNavigate }: PageProps & { onNavigate: (page: string) => void }) {
   const activeUsers = data.users.filter((item) => item.status === "Active").length;
-  return <><Heading eyebrow="SYSTEM OVERVIEW" title="Administration Dashboard" text="Identity, access, and governance at a glance." /><div className="admin-stats"><Metric label="Registered athletes" value={String(data.athletes.length)} note={`${data.athletes.filter((athlete) => athlete.status !== "Temporarily Unavailable").length} currently active`} /><Metric label="Active users" value={String(activeUsers)} note={`${data.users.length} total accounts`} /><Metric label="Professional roles" value={String(data.professionalRoles.length)} note="All managed dynamically" /><Metric label="Audit events" value={String(data.auditLogs.length)} note="Recent tracked actions" /></div><div className="admin-dashboard-grid"><section className="panel admin-card"><p className="section-kicker">ACCESS GOVERNANCE</p><h2>Permission health</h2><div className="health-score"><strong>100%</strong><span>Every administrator action is protected by an explicit permission check.</span></div><button className="panel-action" onClick={() => onNavigate("Roles & Permissions")}>Review access model →</button></section><section className="panel admin-card"><p className="section-kicker">RECENT ACTIVITY</p><h2>Latest audit events</h2>{data.auditLogs.slice(0, 4).map((entry) => <div className="admin-activity" key={entry.id}><span>✓</span><div><strong>{entry.action}</strong><small>{entry.username} · {entry.target}</small></div><time>{formatDate(entry.createdAt)}</time></div>)}</section></div></>;
+  const mayViewAthletes = can(user, "athletes.view");
+  const mayViewUsers = can(user, "admin.users.manage") || can(user, "admin.permissions.manage");
+  const mayViewProfessionalRoles = can(user, "admin.professional_roles.manage") || can(user, "admin.users.manage");
+  const mayViewAudit = can(user, "admin.audit.view");
+  const mayManagePermissions = can(user, "admin.permissions.manage");
+  return <><Heading eyebrow="SYSTEM OVERVIEW" title="Administration Dashboard" text="Identity, access, and governance at a glance." /><div className="admin-stats">{mayViewAthletes && <Metric label="Registered athletes" value={String(data.athletes.length)} note={`${data.athletes.filter((athlete) => athlete.status !== "Temporarily Unavailable").length} currently active`} />}{mayViewUsers && <Metric label="Active users" value={String(activeUsers)} note={`${data.users.length} total accounts`} />}{mayViewProfessionalRoles && <Metric label="Professional roles" value={String(data.professionalRoles.length)} note="All managed dynamically" />}{mayViewAudit && <Metric label="Audit events" value={String(data.auditLogs.length)} note="Recent tracked actions" />}</div><div className="admin-dashboard-grid">{mayManagePermissions && <section className="panel admin-card"><p className="section-kicker">ACCESS GOVERNANCE</p><h2>Permission controls</h2><div className="health-score"><strong>✓</strong><span>Every listed permission is connected to its interface action and protected by the server.</span></div><button className="panel-action" onClick={() => onNavigate("Roles & Permissions")}>Review access model →</button></section>}{mayViewAudit && <section className="panel admin-card"><p className="section-kicker">RECENT ACTIVITY</p><h2>Latest audit events</h2>{data.auditLogs.slice(0, 4).map((entry) => <div className="admin-activity" key={entry.id}><span>✓</span><div><strong>{entry.action}</strong><small>{entry.username} · {entry.target}</small></div><time>{formatDate(entry.createdAt)}</time></div>)}</section>}</div></>;
 }
 function Metric({ label, value, note }: { label: string; value: string; note: string }) { return <article className="panel metric-card"><span>{label}</span><strong>{value}</strong><small>{note}</small></article>; }
 
@@ -129,7 +134,7 @@ function RolesPermissionsV2({ data, setData, notify }: PageProps) {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const queuedPermissions = useRef<Record<string, string[]>>({});
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const role = data.roles.find((item) => item.id === selected);
   const flushRolePermissions = async (roleId: string) => {
     const permissionIds = queuedPermissions.current[roleId];
@@ -140,11 +145,11 @@ function RolesPermissionsV2({ data, setData, notify }: PageProps) {
   };
   const saveRolePermissions = (permissionId: string) => {
     if (!role) return;
-    const next = role.permissionIds.includes(permissionId) ? role.permissionIds.filter((id) => id !== permissionId) : [...role.permissionIds, permissionId];
+    const next = togglePermissionId(role.permissionIds, permissionId);
     setData((current) => current ? { ...current, roles: current.roles.map((item) => item.id === role.id ? { ...item, permissionIds: next } : item) } : current);
     queuedPermissions.current[role.id] = next;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => { void flushRolePermissions(role.id); }, 350);
+    if (saveTimers.current[role.id]) clearTimeout(saveTimers.current[role.id]);
+    saveTimers.current[role.id] = setTimeout(() => { delete saveTimers.current[role.id]; void flushRolePermissions(role.id); }, 350);
   };
   const createRole = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

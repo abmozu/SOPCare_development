@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { ACCESS_ROLES, MOCK_USERS, PROFESSIONAL_ROLES, publicUser, type AccessRole, type PortalUser, type ProfessionalRole } from "./access-model";
+import { ACCESS_ROLES, MOCK_USERS, PROFESSIONAL_ROLES, normalizePermissionIds, publicUser, type AccessRole, type PortalUser, type ProfessionalRole } from "./access-model";
 import { ensureDatabase } from "../db/runtime";
 
 const COOKIE_NAME = "sopcare_session";
@@ -57,7 +57,7 @@ type StoredProfessionalRole = { id: string; name: string; description: string; a
 export async function configuredAccessRoles(): Promise<AccessRole[]> {
   const db = await ensureDatabase();
   const rows = await db.prepare("SELECT id, name, description, permission_ids FROM access_role_configs ORDER BY name").all<StoredAccessRole>();
-  return rows.results.length ? rows.results.map((row) => ({ id: row.id, name: row.name, description: row.description, permissionIds: parseList(row.permission_ids), userCount: 0 })) : ACCESS_ROLES;
+  return rows.results.length ? rows.results.map((row) => ({ id: row.id, name: row.name, description: row.description, permissionIds: normalizePermissionIds(parseList(row.permission_ids)), userCount: 0 })) : ACCESS_ROLES;
 }
 
 export async function configuredProfessionalRoles(): Promise<ProfessionalRole[]> {

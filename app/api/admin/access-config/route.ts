@@ -1,4 +1,4 @@
-import { PERMISSIONS } from "../../../access-model";
+import { normalizePermissionIds } from "../../../access-model";
 import { configuredAccessRoles, directoryUsers, getPortalUser } from "../../../mock-auth";
 import { ensureDatabase, writeAudit } from "../../../../db/runtime";
 
@@ -7,8 +7,7 @@ function text(value: unknown, max = 180) {
 }
 
 function permissionIds(value: unknown) {
-  const allowed = new Set(PERMISSIONS.map((permission) => permission.id));
-  return Array.isArray(value) ? Array.from(new Set(value.filter((id): id is string => typeof id === "string" && allowed.has(id)))) : [];
+  return normalizePermissionIds(Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []);
 }
 
 async function requireAdmin(permission: string) {

@@ -8,7 +8,7 @@ function array(value: unknown) {
 
 export async function POST(request: Request) {
   const actor = await getPortalUser();
-  if (!actor?.permissionIds.includes("admin.users.manage")) return Response.json({ error: "You do not have permission to manage users." }, { status: 403 });
+  if (!actor?.workspaceIds.includes("administration") || !actor.permissionIds.includes("admin.users.manage")) return Response.json({ error: "You do not have permission to manage users." }, { status: 403 });
   try {
     const body = await request.json() as Record<string, unknown>;
     const fullName = String(body.fullName ?? "").trim();

@@ -1,9 +1,12 @@
 import { ensureDatabase, writeAudit } from "../../../db/runtime";
-import { apiError, cleanText, requireApiActor } from "../_utils";
+import { getPortalUser } from "../../mock-auth";
+import { apiError, cleanText } from "../_utils";
 
 export async function POST(request: Request) {
-  const actor = await requireApiActor("athletes.create");
-  if (actor instanceof Response) return actor;
+  const actor = await getPortalUser();
+  if (!actor || !actor.permissionIds.includes("athletes.create") || (!actor.workspaceIds.includes("healthcare") && !actor.workspaceIds.includes("administration"))) {
+    return Response.json({ error: "You do not have permission to create athletes." }, { status: 403 });
+  }
 
   try {
     const payload = await request.json() as Record<string, unknown>;

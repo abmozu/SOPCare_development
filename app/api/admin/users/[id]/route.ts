@@ -6,7 +6,7 @@ const cities = ["Riyadh", "Jeddah", "Dammam"] as const;
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const actor = await getPortalUser();
-  if (!actor?.permissionIds.includes("admin.users.manage")) return Response.json({ error: "You do not have permission to manage users." }, { status: 403 });
+  if (!actor?.workspaceIds.includes("administration") || !actor.permissionIds.includes("admin.users.manage")) return Response.json({ error: "You do not have permission to manage users." }, { status: 403 });
   const { id } = await context.params;
   try {
     const body = await request.json() as Record<string, unknown>;
@@ -54,7 +54,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
 export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
   const actor = await getPortalUser();
-  if (!actor?.permissionIds.includes("admin.users.manage")) return Response.json({ error: "You do not have permission to manage users." }, { status: 403 });
+  if (!actor?.workspaceIds.includes("administration") || !actor.permissionIds.includes("admin.users.manage")) return Response.json({ error: "You do not have permission to manage users." }, { status: 403 });
   const { id } = await context.params;
   if (id === actor.id) return Response.json({ error: "You cannot delete your own account." }, { status: 400 });
   const db = await ensureDatabase();

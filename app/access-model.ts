@@ -76,6 +76,46 @@ export const PERMISSIONS: Permission[] = [
   { id: "admin.settings.manage", name: "Manage Reports & Branding", group: "Administration Permissions", description: "Configure the medical report template, logos, and stamp." },
 ];
 
+const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
+  "athletes.create": ["athletes.view"],
+  "athletes.edit": ["athletes.view"],
+  "athletes.delete": ["athletes.view"],
+  "clinical.records.view": ["athletes.view"],
+  "clinical.notes.create": ["athletes.view", "clinical.records.view"],
+  "clinical.notes.edit": ["athletes.view", "clinical.records.view"],
+};
+
+export function normalizePermissionIds(permissionIds: string[]) {
+  const allowed = new Set(PERMISSIONS.map((permission) => permission.id));
+  const normalized = new Set(permissionIds.filter((id) => allowed.has(id)));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const id of [...normalized]) {
+      for (const dependency of PERMISSION_DEPENDENCIES[id] ?? []) {
+        if (!normalized.has(dependency)) { normalized.add(dependency); changed = true; }
+      }
+    }
+  }
+  return [...normalized];
+}
+
+export function togglePermissionId(permissionIds: string[], id: string) {
+  if (!permissionIds.includes(id)) return normalizePermissionIds([...permissionIds, id]);
+  const next = new Set(permissionIds.filter((permissionId) => permissionId !== id));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const permissionId of [...next]) {
+      if ((PERMISSION_DEPENDENCIES[permissionId] ?? []).some((dependency) => !next.has(dependency))) {
+        next.delete(permissionId);
+        changed = true;
+      }
+    }
+  }
+  return [...next];
+}
+
 const clinicalDefaults = ["athletes.view", "clinical.records.view", "clinical.notes.create", "clinical.notes.edit"];
 
 export const PROFESSIONAL_ROLES: ProfessionalRole[] = [
