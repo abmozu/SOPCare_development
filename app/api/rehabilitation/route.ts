@@ -8,6 +8,24 @@ const phaseTemplates = [
   { title: "Return to performance", goals: "Restore full training and competition readiness", entry: "Sport-loading criteria met", exit: "Full exposure completed and shared return decision approved" },
 ];
 
+function configuredPhases(value: unknown) {
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed) || parsed.length !== phaseTemplates.length) return phaseTemplates;
+    return phaseTemplates.map((fallback, index) => {
+      const item = parsed[index] && typeof parsed[index] === "object" ? parsed[index] as Record<string, unknown> : {};
+      return {
+        title: cleanText(item.title, 100) || fallback.title,
+        goals: cleanText(item.goal, 600) || fallback.goals,
+        entry: fallback.entry,
+        exit: cleanText(item.exitCriteria, 600) || fallback.exit,
+      };
+    });
+  } catch {
+    return phaseTemplates;
+  }
+}
+
 export async function POST(request: Request) {
   const actor = await requireApiActor("clinical.notes.create");
   if (actor instanceof Response) return actor;
@@ -24,6 +42,7 @@ export async function POST(request: Request) {
     const primaryGoal = cleanText(payload.primaryGoal, 1000);
     const precautions = cleanText(payload.precautions, 1000) || "None recorded";
     const nextReviewDate = cleanText(payload.nextReviewDate, 10) || null;
+    const phases = configuredPhases(payload.phases);
     if (!injuryId || !title || !startDate || !weeklyFrequency || !primaryGoal) {
       return Response.json({ error: "Complete all required rehabilitation plan fields." }, { status: 400 });
     }
@@ -52,7 +71,7 @@ export async function POST(request: Request) {
       db.prepare(`INSERT INTO rehabilitation_plans (id, injury_id, owner_practitioner_id, title, status, start_date, target_date, current_phase, overall_progress, weekly_frequency, primary_goal, precautions, next_review_date, created_at, updated_at)
         VALUES (?, ?, ?, ?, 'Active', ?, ?, 1, 0, ?, ?, ?, ?, ?, ?)`)
         .bind(id, injuryId, practitioner.id, title, startDate, targetDate, weeklyFrequency, primaryGoal, precautions, nextReviewDate, now, now),
-      ...phaseTemplates.map((phase, index) => db.prepare(`INSERT INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress, started_at, created_at, updated_at)
+      ...phases.map((phase, index) => db.prepare(`INSERT INTO rehabilitation_phases (id, plan_id, phase_number, title, status, goals, entry_criteria, exit_criteria, progress, started_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`)
         .bind(crypto.randomUUID(), id, index + 1, phase.title, index === 0 ? "Active" : "Locked", phase.goals, phase.entry, phase.exit, index === 0 ? now : null, now, now)),
     ];

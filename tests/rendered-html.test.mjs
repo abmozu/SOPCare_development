@@ -17,7 +17,7 @@ test("server-renders the SOPCare application shell", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>SOPCare — Sports Health Intelligence<\/title>/i);
+  assert.match(html, /<title>SOPCare — Saudi Olympic and Paralympic Care<\/title>/i);
   assert.match(html, /Securing your SOPCare workspace/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });

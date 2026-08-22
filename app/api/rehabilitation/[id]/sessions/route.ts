@@ -13,6 +13,15 @@ function optionalNumber(value: unknown, min: number, max: number) {
   return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
 }
 
+function measurementRows(value: unknown) {
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    return Array.isArray(parsed) ? parsed.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object").slice(0, 30) : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const actor = await requireApiActor("clinical.notes.create");
   if (actor instanceof Response) return actor;
@@ -25,14 +34,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const sessionDate = cleanText(payload.sessionDate, 25);
     const sessionType = cleanText(payload.sessionType, 120);
     const status = payload.status === "Scheduled" ? "Scheduled" : "Completed";
-    const notes = cleanText(payload.notes, 2000);
-    const nextAction = cleanText(payload.nextAction, 1000) || notes;
+    const athleteReport = cleanText(payload.athleteReport, 2000);
+    const treatmentCompleted = cleanText(payload.treatmentCompleted, 3000);
+    const responseAndNextAction = cleanText(payload.responseAndNextAction, 2000);
+    const additionalNotes = cleanText(payload.additionalNotes, 2000);
+    const legacyNotes = cleanText(payload.notes, 4000);
+    const notes = athleteReport && treatmentCompleted && responseAndNextAction
+      ? [`ATHLETE REPORT\n${athleteReport}`, `TREATMENT COMPLETED\n${treatmentCompleted}`, `RESPONSE & NEXT ACTION\n${responseAndNextAction}`, additionalNotes ? `ADDITIONAL SESSION NOTES\n${additionalNotes}` : ""].filter(Boolean).join("\n\n")
+      : legacyNotes;
+    const nextAction = responseAndNextAction || cleanText(payload.nextAction, 1000) || notes;
     const loadScore = score(payload.loadScore);
     const painPre = score(payload.painPre);
     const painPost = score(payload.painPost);
     const phaseProgress = score(payload.phaseProgress, 100);
     if (!sessionDate || !sessionType || !notes) {
-      return Response.json({ error: "Session date, type, and session comment are required." }, { status: 400 });
+      return Response.json({ error: "Session date, type, athlete report, treatment, and response are required." }, { status: 400 });
     }
     if (status === "Completed" && phaseProgress === null) {
       return Response.json({ error: "Completed sessions require the current phase progress." }, { status: 400 });
@@ -78,6 +94,32 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (mobility || assistiveDevice) measurements.push({ metricType: "mobility", label: "Mobility", numericValue: null, textValue: mobility || "Not specified", unit: "", context: assistiveDevice ? `Assistive device: ${assistiveDevice}` : "" });
     const response = cleanText(payload.clinicalResponse, 40);
     if (response) measurements.push({ metricType: "response", label: "Clinical response", numericValue: null, textValue: response, unit: "", context: "Compared with previous session" });
+    const compliance = cleanText(payload.compliance, 40);
+    if (compliance) measurements.push({ metricType: "compliance", label: "Programme compliance", numericValue: null, textValue: compliance, unit: "", context: "Athlete report" });
+    for (const row of measurementRows(payload.measurementRows)) {
+      const metricType = cleanText(row.type, 30);
+      if (!["rom", "special_test", "functional_test"].includes(metricType)) continue;
+      const label = cleanText(row.label, 100);
+      const side = cleanText(row.side, 20);
+      const mode = cleanText(row.mode, 30);
+      const note = cleanText(row.notes, 500);
+      const context = [side, mode, note ? `Note: ${note}` : ""].filter(Boolean).join(" · ");
+      if (!label) return Response.json({ error: "Every rehabilitation measurement requires a name." }, { status: 400 });
+      if (metricType === "rom") {
+        const value = optionalNumber(row.value, -30, 220);
+        if (value === null) return Response.json({ error: `${label} requires a valid ROM result.` }, { status: 400 });
+        measurements.push({ metricType, label, numericValue: value, textValue: "", unit: "°", context: context || "AROM" });
+      } else if (metricType === "special_test") {
+        const result = cleanText(row.result, 40);
+        if (!result) return Response.json({ error: `${label} requires a test result.` }, { status: 400 });
+        measurements.push({ metricType, label, numericValue: null, textValue: result, unit: "", context });
+      } else {
+        const result = cleanText(row.value, 80);
+        if (!result) return Response.json({ error: `${label} requires a functional test result.` }, { status: 400 });
+        const parsedResult = Number(result);
+        measurements.push({ metricType, label, numericValue: Number.isFinite(parsedResult) ? parsedResult : null, textValue: Number.isFinite(parsedResult) ? "" : result, unit: cleanText(row.unit, 30), context });
+      }
+    }
     statements.push(...measurements.map((measurement) => db.prepare(`INSERT INTO rehabilitation_measurements
       (id, session_id, plan_id, metric_type, label, numeric_value, text_value, unit, context, recorded_at, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
